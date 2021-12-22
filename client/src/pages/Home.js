@@ -1,4 +1,4 @@
-import { Container, Stack, Center, Heading, Input, FormControl, FormLabel, SimpleGrid, GridItem, Icon, Button, Tabs, TabList, Tab } from '@chakra-ui/react';
+import { Container, Stack, Center, Heading, Input, FormControl, FormLabel, SimpleGrid, GridItem, Icon, Button, Tabs, TabList, Tab, Textarea } from '@chakra-ui/react';
 import { BsFilter } from "react-icons/bs";
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react';
@@ -18,11 +18,11 @@ export default function Home() {
 
                     {
                         formType === 'create' ?
-                        <Stack w={500} p={10} spacing={4} border="1px" borderColor="gray.200">
+                        <Stack w={500} p={10} spacing={4} border='1px' borderColor='gray.200'>
                             {/* Wavelength Header */}
                             <Center> 
                                 <Heading> 
-                                    <Icon as={BsFilter} pos="relative" color="blue.500" top={1.5} right={2}/>
+                                    <Icon as={BsFilter} pos='relative' color='blue.500' top={1.5} right={2}/>
                                     Wavelength 
                                 </Heading> 
                             </Center>
@@ -32,18 +32,22 @@ export default function Home() {
                                 <SimpleGrid rowGap={4}>
                                     <GridItem>
                                         <FormLabel> Username </FormLabel>
-                                        <Input name="username"></Input>
+                                        <Input name='username' />
                                     </GridItem>
                                     <GridItem>
                                         <FormLabel> Room Name </FormLabel>
-                                        <Input name="room_name"></Input>
+                                        <Input name='room_name' />
                                     </GridItem>
                                     <GridItem>
                                         <FormLabel> Room Password </FormLabel>
-                                        <Input name="room_password"></Input>
+                                        <Input name='room_password' />
+                                    </GridItem>
+                                    <GridItem>
+                                        <FormLabel> Categories </FormLabel>
+                                        <Textarea name='categories' />
                                     </GridItem>
                                     <GridItem mt={4}>
-                                        <Button w='full' type="submit" colorScheme="green">
+                                        <Button w='full' type='submit' colorScheme='green'>
                                             Create Game
                                         </Button>
                                     </GridItem>
@@ -51,11 +55,11 @@ export default function Home() {
                             </form>
                         </Stack>
                         :
-                        <Stack w={500} p={10} spacing={4} border="1px" borderColor="gray.200">
+                        <Stack w={500} p={10} spacing={4} border='1px' borderColor='gray.200'>
                             {/* Wavelength Header */}
                             <Center> 
                                 <Heading> 
-                                <Icon as={BsFilter} pos="relative" color="blue.500" top={1.5} right={2}/>
+                                <Icon as={BsFilter} pos='relative' color='blue.500' top={1.5} right={2}/>
                                     Wavelength 
                                 </Heading> 
                             </Center>
@@ -65,18 +69,18 @@ export default function Home() {
                                 <SimpleGrid rowGap={4}>
                                     <GridItem>
                                         <FormLabel> Username </FormLabel>
-                                        <Input name="username"></Input>
+                                        <Input name='username' />
                                     </GridItem>
                                     <GridItem>
                                         <FormLabel> Room Code </FormLabel>
-                                        <Input name="room_name"></Input>
+                                        <Input name='room_name' />
                                     </GridItem>
                                     <GridItem>
                                         <FormLabel> Room Password </FormLabel>
-                                        <Input name="room_password"></Input>
+                                        <Input name='room_password' />
                                     </GridItem>
                                     <GridItem mt={4}>
-                                        <Button w='full' type="submit" colorScheme="blue">
+                                        <Button w='full' type='submit' colorScheme='blue'>
                                             Join Game
                                         </Button>
                                     </GridItem>
@@ -96,7 +100,8 @@ export default function Home() {
             state: {
                 username: event.target.username.value,
                 room_name: event.target.room_name.value,
-                room_password: event.target.room_password.value
+                room_password: event.target.room_password.value,
+                categories: event.target.categories.value
             }
         })
     }

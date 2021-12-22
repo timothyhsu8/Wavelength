@@ -1,35 +1,56 @@
 import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom'
-import { BsDice6Fill, BsFillDoorClosedFill } from 'react-icons/bs';
-import { useState } from 'react';
+import { BsDice6Fill } from 'react-icons/bs';
+import { useState, useEffect } from 'react';
+import io from 'socket.io-client';
 
 export default function Game() {
     const location = useLocation()
+    const [socket, setSocket] = useState(null);
     const [playerRolled, setPlayerRolled] = useState(false)
     const [rollNum, setRollNum] = useState('--')
     const [disabledGuesses, setDisabledGuesses] = useState([])
     const [playerGuesses, setPlayerGuesses] = useState([])
+    
+    const player_list = ['Tree', 'Loller', 'Jayek', 'Arto', 'Pieckomode']
     const username = location.state.username
+    const room_name = location.state.room_name
+    console.log(location.state.categories)
+    
+    useEffect(() => {
+        const newSocket = io.connect(`http://${window.location.hostname}:5000`)
+        setSocket(newSocket)
+        console.log(newSocket)
+    }, [])
 
     return (
         <Box>
             <Grid templateColumns='0.18fr 0.64fr 0.18fr'>
                 {/* Left Column (Player List) */}
                 <Box px={7} py={5} borderRight='1px' borderColor='gray.200'>
-                    <Stack>
+                    <Center>
+                        <Heading size='lg'>
+                            {room_name}
+                        </Heading>
+                    </Center>
+
+                    <Stack mt={4}>
                         <Text fontSize={20} fontWeight='bold'>
                             Players
                         </Text>
                         {
-                            playerGuesses.map((guess) => {
+                            player_list.map((name, index) => {
                                 return (
-                                    <HStack spacing={3}>
-                                        <Text fontSize={18} fontWeight='medium'> {guess.username} - 10 </Text>
+                                    <HStack spacing={3} key={index}>
+                                        <Text fontSize={18} fontWeight='medium'> {name} - 10 </Text>
                                     </HStack>
                                 )
                             })
                         }
                     </Stack>
+                    <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
+                        Next Turn
+                    </Button>
                 </Box>
 
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
@@ -48,7 +69,7 @@ export default function Game() {
                             Roll
                         </Button>
 
-                        <Grid templateColumns="repeat(10, 1fr)">
+                        <Grid templateColumns="repeat(10, 1fr)" p={4} borderRadius={5}>
                             {renderGuessButtons()}
                         </Grid>
                     </VStack>
@@ -61,9 +82,9 @@ export default function Game() {
                             Guesses
                         </Text>
                         {
-                            playerGuesses.map((guess) => {
+                            playerGuesses.map((guess, index) => {
                                 return (
-                                    <HStack spacing={3}>
+                                    <HStack spacing={3} key={index}>
                                         <Button w={45} h={45} borderRadius={100} colorScheme='blue' _hover={{cursor:"auto"}} _active={{}} _focus={{}}> {guess.guess} </Button>
                                         <Text fontSize={18} fontWeight='medium'> {guess.username} </Text>
                                     </HStack>
@@ -75,12 +96,13 @@ export default function Game() {
             </Grid>
         </Box>
     )
-    
+
     /* Generates a random number and displays it to the user */
     function roll() {
         let randomInt = getRandomInt(1, 21)
         setRollNum(randomInt)
         setPlayerRolled(true)
+        socket.emit('roll');
     }
 
     /* Renders the buttons 1-20 that players can use to guess */
@@ -102,6 +124,14 @@ export default function Game() {
         setPlayerGuesses(oldArray => [...oldArray, { username: username, guess: guessNum }])
         setDisabledGuesses(oldArray => [...oldArray, guessNum])
     } 
+
+    /* Resets guesses and moves to the next players turn */
+    function nextTurn() {
+        setPlayerGuesses([])
+        setDisabledGuesses([])
+        setPlayerRolled(false)
+        setRollNum('--')
+    }
 
     /* Gets a random integer between min and max */
     function getRandomInt(min, max) {
