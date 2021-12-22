@@ -73,7 +73,7 @@ export default function Home() {
                                     </GridItem>
                                     <GridItem>
                                         <FormLabel> Room Code </FormLabel>
-                                        <Input name='room_name' />
+                                        <Input name='room_code' />
                                     </GridItem>
                                     <GridItem>
                                         <FormLabel> Room Password </FormLabel>
@@ -113,7 +113,7 @@ export default function Home() {
         { 
             state: {
                 username: event.target.username.value,
-                room_name: event.target.room_name.value,
+                room_code: event.target.room_code.value,
                 room_password: event.target.room_password.value
             }
         })

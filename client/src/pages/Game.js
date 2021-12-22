@@ -7,20 +7,44 @@ import io from 'socket.io-client';
 export default function Game() {
     const location = useLocation()
     const [socket, setSocket] = useState(null);
+    const [roomCode, setRoomCode] = useState('NONE')
+    const [playerList, setPlayerList] = useState([])
     const [playerRolled, setPlayerRolled] = useState(false)
     const [rollNum, setRollNum] = useState('--')
     const [disabledGuesses, setDisabledGuesses] = useState([])
     const [playerGuesses, setPlayerGuesses] = useState([])
     
-    const player_list = ['Tree', 'Loller', 'Jayek', 'Arto', 'Pieckomode']
     const username = location.state.username
     const room_name = location.state.room_name
-    console.log(location.state.categories)
+    // console.log(location.state.categories)
     
     useEffect(() => {
         const newSocket = io.connect(`http://${window.location.hostname}:5000`)
         setSocket(newSocket)
-        console.log(newSocket)
+        let room_code = 'NONE'
+
+        // Joining a room, use inputted room code
+        if (location.state.room_code !== undefined) {
+            setRoomCode(location.state.room_code)
+            room_code = location.state.room_code
+            newSocket.emit('join', room_code)
+        }
+
+        // Creating a room, generate a random room code
+        else {
+            room_code = generateRandomCode()
+            setRoomCode(room_code)
+            setPlayerList(oldArray => [...oldArray, username])
+
+            let room_info = {
+                room_code: room_code,
+                room_name: location.state.room_name,
+                room_password: location.state.room_password,
+                categories: location.state.categories,
+                creator: username
+            }
+            newSocket.emit('create_room', room_info)
+        }
     }, [])
 
     return (
@@ -39,7 +63,7 @@ export default function Game() {
                             Players
                         </Text>
                         {
-                            player_list.map((name, index) => {
+                            playerList.map((name, index) => {
                                 return (
                                     <HStack spacing={3} key={index}>
                                         <Text fontSize={18} fontWeight='medium'> {name} - 10 </Text>
@@ -48,9 +72,13 @@ export default function Game() {
                             })
                         }
                     </Stack>
-                    <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
+                    {/* <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
                         Next Turn
-                    </Button>
+                    </Button> */}
+                    <Stack mt={8} spacing={1}>
+                        <Text fontSize={20} fontWeight='bold'> Room Code </Text>
+                        <Text fontSize={18} fontWeight='medium'> {roomCode} </Text>
+                    </Stack>
                 </Box>
 
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
@@ -131,6 +159,15 @@ export default function Game() {
         setDisabledGuesses([])
         setPlayerRolled(false)
         setRollNum('--')
+    }
+
+    /* Gets a random integer between min and max */
+    function generateRandomCode() {
+        const randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+        let code = ''
+        for (let i = 0; i < 5; i++)
+            code += randomChars.charAt(getRandomInt(0, 26))
+        return code
     }
 
     /* Gets a random integer between min and max */
