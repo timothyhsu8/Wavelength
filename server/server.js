@@ -27,7 +27,12 @@ io.on('connection', (socket) => {
 			room_name: room_info.room_name,
 			room_password: room_info.room_password,
 			categories: room_info.categories,
-			player_list: [room_info.creator]
+			player_list: [
+				{
+					id: socket.id,
+					username: room_info.creator
+				}
+			]
 		}
 		socket.join(room_code)
 	})
@@ -40,12 +45,31 @@ io.on('connection', (socket) => {
 		// If the room exists, add new player to it
 		if (room_data[room_code] !== undefined) {
 			// Add new player to the player list
-			room_data[room_code].player_list.push(username)
+			room_data[room_code].player_list.push(
+				{
+					id: socket.id,
+					username: username
+				}
+			)
 
 			socket.join(room_code)
 			io.to(socket.id).emit('you_joined', room_data[room_code])
 			io.to(room_code).emit('new_player_joined', room_data[room_code].player_list)
 		}
+	})
+
+	socket.on('disconnecting', () => {
+		// Remove player from room the room they were in
+		socket.rooms.forEach((room_code) => {
+			if (room_data[room_code] !== undefined) {
+				let player_list = room_data[room_code].player_list
+				for (let i = 0; i <  player_list.length; i++)
+					if (player_list[i].id === socket.id)
+						player_list.splice(i, 1)
+
+				io.to(room_code).emit('player_disconnected', player_list)
+			}
+		})
 	})
 
 	socket.on('roll', (state) => {

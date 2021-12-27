@@ -32,18 +32,21 @@ export default function Game() {
 
         // Creating a room, generate a random room code
         else {
-            room_code = generateRandomCode()
-            setRoomCode(room_code)
-            setPlayerList(oldArray => [...oldArray, username])
+            // Waits for socket to connect (so it can set playerlist with the creators socket id)
+            newSocket.on('connect', () => {
+                room_code = generateRandomCode()
+                setRoomCode(room_code)
+                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username }])
 
-            let room_info = {
-                room_code: room_code,
-                room_name: location.state.room_name,
-                room_password: location.state.room_password,
-                categories: location.state.categories,
-                creator: username
-            }
-            newSocket.emit('create_room', room_info)
+                let room_info = {
+                    room_code: room_code,
+                    room_name: location.state.room_name,
+                    room_password: location.state.room_password,
+                    categories: location.state.categories,
+                    creator: username
+                }
+                newSocket.emit('create_room', room_info)
+            })
         }
 
         /* Sets client's state as the current state of the game */
@@ -52,6 +55,10 @@ export default function Game() {
         })
 
         newSocket.on('new_player_joined', (updated_player_list) => {
+            setPlayerList(updated_player_list)
+        })
+
+        newSocket.on('player_disconnected', (updated_player_list) => {
             setPlayerList(updated_player_list)
         })
     }, [])
@@ -72,10 +79,10 @@ export default function Game() {
                             Players
                         </Text>
                         {
-                            playerList.map((name, index) => {
+                            playerList.map((player_info, index) => {
                                 return (
                                     <HStack spacing={3} key={index}>
-                                        <Text fontSize={18} fontWeight='medium'> {name} - 10 </Text>
+                                        <Text fontSize={18} fontWeight='medium'> { player_info.username } </Text>
                                     </HStack>
                                 )
                             })
