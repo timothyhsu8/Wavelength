@@ -58,6 +58,7 @@ io.on('connection', (socket) => {
 		}
 	})
 
+	// Player disconnects, remove them from the room
 	socket.on('disconnecting', () => {
 		// Remove player from room the room they were in
 		socket.rooms.forEach((room_code) => {
@@ -70,6 +71,10 @@ io.on('connection', (socket) => {
 				io.to(room_code).emit('player_disconnected', player_list)
 			}
 		})
+	})
+
+	socket.on('guess', (guessInfo) => {
+		socket.broadcast.to(guessInfo.room_code).emit('guess', { username: guessInfo.username, guess: guessInfo.guess })
 	})
 
 	socket.on('roll', (state) => {
