@@ -27,7 +27,7 @@ export default function Game() {
         if (location.state.room_code !== undefined) {
             setRoomCode(location.state.room_code)
             room_code = location.state.room_code
-            newSocket.emit('join', room_code)
+            newSocket.emit('join', { room_code: room_code, username: username })
         }
 
         // Creating a room, generate a random room code
@@ -45,6 +45,15 @@ export default function Game() {
             }
             newSocket.emit('create_room', room_info)
         }
+
+        /* Sets client's state as the current state of the game */
+        newSocket.on('you_joined', (room_data) => {
+            // setPlayerList(room_data.player_list)
+        })
+
+        newSocket.on('new_player_joined', (updated_player_list) => {
+            setPlayerList(updated_player_list)
+        })
     }, [])
 
     return (

@@ -17,8 +17,8 @@ var room_data = {}
 const PORT = process.env.PORT || 5000
 
 io.on('connection', (socket) => {
-	console.log('a user connected')
 
+	// Create a new room
 	socket.on('create_room', (room_info) => {
 		let room_code = room_info.room_code
 		console.log(`Creating room ${room_code}`)
@@ -29,12 +29,23 @@ io.on('connection', (socket) => {
 			categories: room_info.categories,
 			player_list: [room_info.creator]
 		}
-		console.log(room_data)
 		socket.join(room_code)
 	})
 
-	socket.on('join', (room_code) => {
-		socket.join(room_code)
+	// Player joins a room
+	socket.on('join', (join_data) => {
+		let room_code = join_data.room_code
+		let username = join_data.username
+
+		// If the room exists, add new player to it
+		if (room_data[room_code] !== undefined) {
+			// Add new player to the player list
+			room_data[room_code].player_list.push(username)
+
+			socket.join(room_code)
+			io.to(socket.id).emit('you_joined', room_data[room_code])
+			io.to(room_code).emit('new_player_joined', room_data[room_code].player_list)
+		}
 	})
 
 	socket.on('roll', (state) => {

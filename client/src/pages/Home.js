@@ -108,7 +108,6 @@ export default function Home() {
     
     function joinGame(event) {
         event.preventDefault()
-        console.log("ehh")
         navigate('/game', 
         { 
             state: {
