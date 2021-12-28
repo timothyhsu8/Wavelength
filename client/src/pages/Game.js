@@ -64,8 +64,15 @@ export default function Game() {
             setPlayerList(updated_player_list)
         })
 
-        newSocket.on('player_disconnected', (updated_player_list) => {
-            setPlayerList(updated_player_list)
+        // A player disconnected, remove them from the player list and switch to next psychic if they had that role
+        newSocket.on('player_disconnected', (gameInfo) => {
+            let psychicInfo = gameInfo.psychicInfo
+            setPlayerList(gameInfo.updated_player_list)
+    
+            // Disconnected player was Psychic, give role to the next player in line
+            if (psychicInfo !== null) {
+                setNextTurn(gameInfo.updated_player_list, newSocket.id, gameInfo.psychicInfo.psychic_id)
+            }
         })
 
         // A player guesses a number, grey it out and add it to the guesses list
@@ -75,21 +82,7 @@ export default function Game() {
 
          // Sets the game to the next turn, resetting guesses and moving to the next psychic
          newSocket.on('new_turn', (gameInfo) => {
-            setPlayerList(gameInfo.player_list)
-            setPlayerGuesses([])
-            setDisabledGuesses([])
-
-            // If you are now the psychic
-            if (gameInfo.psychicId === newSocket.id) {
-                setIsPsychic(true)
-                setPlayerRolled(false)
-                setRollNum('--')
-            }
-
-            // If you are not the psychic
-            else {
-                setIsPsychic(false)
-            }
+            setNextTurn(gameInfo.player_list, newSocket.id, gameInfo.psychicId)
         })
     }, [])
 
@@ -203,9 +196,28 @@ export default function Game() {
         }
     } 
 
-    /* Resets guesses and moves to the next players turn */
+    /* Sends socket event to switch to the next turn */
     function nextTurn() {
         socket.emit('new_turn', { room_code: roomCode, player_list: playerList })
+    }
+
+    /* Resets guesses and moves to the next players turn */
+    function setNextTurn(updated_player_list, socketId, psychicId) {
+        setPlayerList(updated_player_list)
+        setPlayerGuesses([])
+        setDisabledGuesses([])
+
+        // If you are now the psychic
+        if (psychicId === socketId) {
+            setIsPsychic(true)
+            setPlayerRolled(false)
+            setRollNum('--')
+        }
+
+        // If you are not the psychic
+        else {
+            setIsPsychic(false)
+        }
     }
 
     /* Renders the current player's turn (X's Turn OR Your Turn) */

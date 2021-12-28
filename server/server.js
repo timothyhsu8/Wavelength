@@ -62,15 +62,29 @@ io.on('connection', (socket) => {
 
 	// Player disconnects, remove them from the room
 	socket.on('disconnecting', () => {
-		// Remove player from room the room they were in
 		socket.rooms.forEach((room_code) => {
 			if (room_data[room_code] !== undefined) {
+				let player_index = -1
+				let psychicInfo = null
+
+				// Find index of the disconnecting player
 				let player_list = room_data[room_code].player_list
 				for (let i = 0; i <  player_list.length; i++)
-					if (player_list[i].id === socket.id)
-						player_list.splice(i, 1)
+					if (player_list[i].id === socket.id) {
+						player_index = i
+						break
+					}
+				
+				// If disconnecting player was psychic, give psychic to the next player in line
+				if (player_list[player_index].isPsychic === true) {
+					psychicInfo = switchPsychic(player_list)
+					player_list = psychicInfo.player_list
+				}
+				
+				// Remove player from the player list
+				player_list.splice(player_index, 1)
 
-				io.to(room_code).emit('player_disconnected', player_list)
+				io.to(room_code).emit('player_disconnected', { updated_player_list: player_list, psychicInfo: psychicInfo })
 			}
 		})
 	})
@@ -81,38 +95,44 @@ io.on('connection', (socket) => {
 
 	// New turn, reset guesses, move to next player, etc.
 	socket.on('new_turn', (gameInfo) => {
-		let player_list = gameInfo.player_list
-		let psychic_index = -1
-		let psychic_id
-
-		// Find current Psychic, get their index, remove them as psychic
-		for (let i = 0; i < player_list.length; i++)
-			if (player_list[i].isPsychic) {
-				psychic_index = i
-				player_list[i].isPsychic = false
-				break
-			}
-		
-		// Set psychic back to the first player
-		if (psychic_index >= player_list.length - 1) {
-			player_list[0].isPsychic = true
-			psychic_id = player_list[0].id 
-		}
-		
-		// Set psychic to the next player
-		else {
-			player_list[psychic_index + 1].isPsychic = true
-			psychic_id = player_list[psychic_index + 1].id 
-		}
-
-		room_data[gameInfo.room_code].player_list = player_list
-		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychic_id, player_list: player_list } )
+		let psychicInfo = switchPsychic(gameInfo.player_list)
+		room_data[gameInfo.room_code].player_list = psychicInfo.player_list
+		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
 	}) 
 
 	socket.on('roll', (state) => {
 		console.log('rolled!!')
 	})
 })
+
+// Returns the player list and psychic id after the psychic role is changed to the next player in line
+function switchPsychic(playerList) {
+	let player_list = playerList
+	let psychic_index = -1
+	let psychic_id
+
+	// Find current Psychic, get their index, remove them as psychic
+	for (let i = 0; i < player_list.length; i++)
+		if (player_list[i].isPsychic) {
+			psychic_index = i
+			player_list[i].isPsychic = false
+			break
+		}
+	
+	// Set psychic back to the first player
+	if (psychic_index >= player_list.length - 1) {
+		player_list[0].isPsychic = true
+		psychic_id = player_list[0].id 
+	}
+	
+	// Set psychic to the next player
+	else {
+		player_list[psychic_index + 1].isPsychic = true
+		psychic_id = player_list[psychic_index + 1].id 
+	}
+
+	return { player_list: player_list, psychic_id: psychic_id }
+}
 
 
 server.listen(PORT, () => {
