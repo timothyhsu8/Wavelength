@@ -8,10 +8,11 @@ export default function Game() {
     const location = useLocation()
     const [socket, setSocket] = useState(null)
 
+    const [roomName, setRoomName] = useState('')
     const [roomCode, setRoomCode] = useState('NONE')
     const [playerList, setPlayerList] = useState([])
    
-    const [playerRolled, setPlayerRolled] = useState(false)
+    const [psychicRolled, setPsychicRolled] = useState(false)
     const [rollNum, setRollNum] = useState('--')
     const [disabledGuesses, setDisabledGuesses] = useState([])
     const [playerGuessed, setPlayerGuessed] = useState(false)
@@ -20,7 +21,6 @@ export default function Game() {
     const [isPsychic, setIsPsychic] = useState(false)
     
     const username = location.state.username
-    const room_name = location.state.room_name
     // console.log(location.state.categories)
     
     useEffect(() => {
@@ -41,6 +41,7 @@ export default function Game() {
             newSocket.on('connect', () => {
                 room_code = generateRandomCode()
                 setRoomCode(room_code)
+                setRoomName(location.state.room_name)
                 setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username, isPsychic: true }])
                 setIsPsychic(true)
 
@@ -57,6 +58,8 @@ export default function Game() {
 
         /* Sets client's state as the current state of the game */
         newSocket.on('you_joined', (room_data) => {
+            setRoomName(room_data.room_name)
+            setPsychicRolled(room_data.psychicRolled)
             // setPlayerList(room_data.player_list)
         })
 
@@ -84,6 +87,12 @@ export default function Game() {
          newSocket.on('new_turn', (gameInfo) => {
             setNextTurn(gameInfo.player_list, newSocket.id, gameInfo.psychicId)
         })
+
+        // Sets the game to the next turn, resetting guesses and moving to the next psychic
+        newSocket.on('roll', (gameInfo) => {
+            setRollNum(gameInfo.roll_num)
+            setPsychicRolled(true)
+        })
     }, [])
 
     return (
@@ -93,7 +102,7 @@ export default function Game() {
                 <Box px={7} py={5} borderRight='1px' borderColor='gray.200'>
                     <Center>
                         <Heading size='lg'>
-                            {room_name}
+                            {roomName}
                         </Heading>
                     </Center>
 
@@ -128,15 +137,15 @@ export default function Game() {
                         </Heading>
                         { renderTurn() }
                     </VStack>
-                    <Heading size='2xl'> {rollNum} </Heading>
+                    
+                    { isPsychic ? 
+                        <Heading size='2xl'> {rollNum} </Heading>
+                        :
+                        <Heading size='xl'> Waiting for { getPsychic() } to roll... </Heading>
+                    }
+                    
                     <VStack spacing={12}>
-                        <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={playerRolled} _focus={{}}>
-                            Roll
-                        </Button>
-
-                        <Grid templateColumns="repeat(10, 1fr)" p={4} borderRadius={5}>
-                            {renderGuessButtons()}
-                        </Grid>
+                        { renderControls() }
                     </VStack>
                 </VStack>
 
@@ -165,9 +174,8 @@ export default function Game() {
     /* Generates a random number and displays it to the user */
     function roll() {
         let randomInt = getRandomInt(1, 21)
-        setRollNum(randomInt)
-        setPlayerRolled(true)
-        socket.emit('roll');
+        // setRollNum(randomInt)
+        socket.emit('roll', { room_code: roomCode, roll_num: randomInt });
     }
 
     /* Renders the buttons 1-20 that players can use to guess */
@@ -177,11 +185,32 @@ export default function Game() {
             guessButtons.push(
                 <Button w={75} h={75} m={2.5} colorScheme={disabledGuesses.includes(i) ? 'green' : 'facebook'} fontSize={25} borderRadius={100} 
                     onClick={() => handleGuess(i, username, true)} 
-                    isDisabled={disabledGuesses.includes(i) || playerGuessed} _focus={{}} key={i}>
+                    isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled} _focus={{}} key={i}>
                     {i}
                 </Button>
             )
         return guessButtons
+    }
+
+    function renderControls() {
+        // Render Roll Button (If Psychic)
+        if (isPsychic) {
+            return (
+                <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}>
+                    Roll
+                </Button>
+            )
+        }
+
+        // Render Guess Buttons (If Not Psychic)
+        else {
+            return (
+                <Grid templateColumns="repeat(10, 1fr)" p={4} borderRadius={5}>
+                    { renderGuessButtons() }
+                </Grid>
+            )
+        }
+        
     }
 
     /* Handles when a player guesses a number from 1-20 */
@@ -204,13 +233,14 @@ export default function Game() {
     /* Resets guesses and moves to the next players turn */
     function setNextTurn(updated_player_list, socketId, psychicId) {
         setPlayerList(updated_player_list)
+        setPlayerGuessed(false)
         setPlayerGuesses([])
         setDisabledGuesses([])
+        setPsychicRolled(false)
 
         // If you are now the psychic
         if (psychicId === socketId) {
             setIsPsychic(true)
-            setPlayerRolled(false)
             setRollNum('--')
         }
 

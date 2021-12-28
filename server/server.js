@@ -27,6 +27,7 @@ io.on('connection', (socket) => {
 			room_name: room_info.room_name,
 			room_password: room_info.room_password,
 			categories: room_info.categories,
+			psychicRolled: false,
 			player_list: [
 				{
 					id: socket.id,
@@ -79,6 +80,7 @@ io.on('connection', (socket) => {
 				if (player_list[player_index].isPsychic === true) {
 					psychicInfo = switchPsychic(player_list)
 					player_list = psychicInfo.player_list
+					room_data[room_code].psychicRolled = false
 				}
 				
 				// Remove player from the player list
@@ -97,11 +99,13 @@ io.on('connection', (socket) => {
 	socket.on('new_turn', (gameInfo) => {
 		let psychicInfo = switchPsychic(gameInfo.player_list)
 		room_data[gameInfo.room_code].player_list = psychicInfo.player_list
+		room_data[gameInfo.room_code].psychicRolled = false
 		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
 	}) 
 
-	socket.on('roll', (state) => {
-		console.log('rolled!!')
+	socket.on('roll', (gameInfo) => {
+		room_data[gameInfo.room_code].psychicRolled = true
+		io.to(gameInfo.room_code).emit('roll', { roll_num: gameInfo.roll_num } )
 	})
 })
 
