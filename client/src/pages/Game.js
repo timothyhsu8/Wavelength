@@ -6,7 +6,8 @@ import io from 'socket.io-client';
 
 export default function Game() {
     const location = useLocation()
-    const [socket, setSocket] = useState(null);
+    const [socket, setSocket] = useState(null)
+
     const [roomCode, setRoomCode] = useState('NONE')
     const [playerList, setPlayerList] = useState([])
    
@@ -16,7 +17,6 @@ export default function Game() {
     const [playerGuessed, setPlayerGuessed] = useState(false)
     const [playerGuesses, setPlayerGuesses] = useState([])
    
-    const [psychicIndex, setPsychicIndex] = useState(0) // Keeps track of the index for who the psychic is
     const [isPsychic, setIsPsychic] = useState(false)
     
     const username = location.state.username
@@ -41,7 +41,7 @@ export default function Game() {
             newSocket.on('connect', () => {
                 room_code = generateRandomCode()
                 setRoomCode(room_code)
-                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username }])
+                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username, isPsychic: true }])
                 setIsPsychic(true)
 
                 let room_info = {
@@ -72,6 +72,25 @@ export default function Game() {
         newSocket.on('guess', (guessInfo) => {
             handleGuess(guessInfo.guess, guessInfo.username, false)
         })
+
+         // Sets the game to the next turn, resetting guesses and moving to the next psychic
+         newSocket.on('new_turn', (gameInfo) => {
+            setPlayerList(gameInfo.player_list)
+            setPlayerGuesses([])
+            setDisabledGuesses([])
+
+            // If you are now the psychic
+            if (gameInfo.psychicId === newSocket.id) {
+                setIsPsychic(true)
+                setPlayerRolled(false)
+                setRollNum('--')
+            }
+
+            // If you are not the psychic
+            else {
+                setIsPsychic(false)
+            }
+        })
     }, [])
 
     return (
@@ -99,9 +118,9 @@ export default function Game() {
                             })
                         }
                     </Stack>
-                    {/* <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
+                    <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
                         Next Turn
-                    </Button> */}
+                    </Button>
                     <Stack mt={8} spacing={1}>
                         <Text fontSize={20} fontWeight='bold'> Room Code </Text>
                         <Text fontSize={18} fontWeight='medium'> {roomCode} </Text>
@@ -186,10 +205,7 @@ export default function Game() {
 
     /* Resets guesses and moves to the next players turn */
     function nextTurn() {
-        setPlayerGuesses([])
-        setDisabledGuesses([])
-        setPlayerRolled(false)
-        setRollNum('--')
+        socket.emit('new_turn', { room_code: roomCode, player_list: playerList })
     }
 
     /* Renders the current player's turn (X's Turn OR Your Turn) */
@@ -212,8 +228,9 @@ export default function Game() {
 
     /* Returns the name of the current psychic */
     function getPsychic() {
-        if (playerList.length !== 0)
-            return playerList[psychicIndex].username
+        for (let i = 0; i < playerList.length; i++)
+            if (playerList[i].isPsychic)
+                return playerList[i].username
     }
 
     /* Gets a random integer between min and max */

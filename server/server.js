@@ -30,7 +30,8 @@ io.on('connection', (socket) => {
 			player_list: [
 				{
 					id: socket.id,
-					username: room_info.creator
+					username: room_info.creator,
+					isPsychic: true
 				}
 			]
 		}
@@ -48,7 +49,8 @@ io.on('connection', (socket) => {
 			room_data[room_code].player_list.push(
 				{
 					id: socket.id,
-					username: username
+					username: username,
+					isPsychic: false
 				}
 			)
 
@@ -76,6 +78,36 @@ io.on('connection', (socket) => {
 	socket.on('guess', (guessInfo) => {
 		socket.broadcast.to(guessInfo.room_code).emit('guess', { username: guessInfo.username, guess: guessInfo.guess })
 	})
+
+	// New turn, reset guesses, move to next player, etc.
+	socket.on('new_turn', (gameInfo) => {
+		let player_list = gameInfo.player_list
+		let psychic_index = -1
+		let psychic_id
+
+		// Find current Psychic, get their index, remove them as psychic
+		for (let i = 0; i < player_list.length; i++)
+			if (player_list[i].isPsychic) {
+				psychic_index = i
+				player_list[i].isPsychic = false
+				break
+			}
+		
+		// Set psychic back to the first player
+		if (psychic_index >= player_list.length - 1) {
+			player_list[0].isPsychic = true
+			psychic_id = player_list[0].id 
+		}
+		
+		// Set psychic to the next player
+		else {
+			player_list[psychic_index + 1].isPsychic = true
+			psychic_id = player_list[psychic_index + 1].id 
+		}
+
+		room_data[gameInfo.room_code].player_list = player_list
+		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychic_id, player_list: player_list } )
+	}) 
 
 	socket.on('roll', (state) => {
 		console.log('rolled!!')
