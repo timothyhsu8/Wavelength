@@ -27,7 +27,10 @@ io.on('connection', (socket) => {
 			room_name: room_info.room_name,
 			room_password: room_info.room_password,
 			categories: room_info.categories,
+			
 			psychicRolled: false,
+			rollNum: '--',
+
 			playerGuesses: [],
 			disabledGuesses: [],
 			allPlayersGuessed: false,
@@ -96,16 +99,32 @@ io.on('connection', (socket) => {
 		})
 	})
 
+	// Player guessed a number
 	socket.on('guess', (guessInfo) => {
 		let room_info = room_data[guessInfo.room_code]
-		room_info.playerGuesses.push({ username: guessInfo.username, guess: guessInfo.guess })
+		room_info.playerGuesses.push({ id: guessInfo.id, username: guessInfo.username, guess: guessInfo.guess })
 		room_info.disabledGuesses.push(guessInfo.guess)
 
 		socket.broadcast.to(guessInfo.room_code).emit('guess', { playerGuesses: room_info.playerGuesses, disabledGuesses: room_info.disabledGuesses })
 
 		// Checks if all players have now guessed
-		if (room_info.playerGuesses.length >= room_info.player_list.length - 1)
+		if (room_info.playerGuesses.length >= room_info.player_list.length - 1) {
 			room_info.allPlayersGuessed = true
+
+			// Find closest guess to the actual roll
+			let pointReceivers = findPointReceivers(room_info.rollNum, room_info.playerGuesses, getPsychicId(room_info.player_list))
+
+			pointReceivers.forEach((pointReceiverId) => {
+				room_info.player_list.forEach((player) => {
+					if (player.id === pointReceiverId) {
+						console.log("Player scored points")
+						player.score += 1
+					}
+				})
+			})
+
+			io.to(guessInfo.room_code).emit('all_players_guessed', { pointReceivers: pointReceivers, updatedPlayerList: room_info.player_list })
+		}
 
 	})
 
@@ -123,6 +142,7 @@ io.on('connection', (socket) => {
 	// Psychic rolled
 	socket.on('roll', (gameInfo) => {
 		room_data[gameInfo.room_code].psychicRolled = true
+		room_data[gameInfo.room_code].rollNum = gameInfo.roll_num
 		io.to(gameInfo.room_code).emit('roll', { roll_num: gameInfo.roll_num } )
 	})
 })
@@ -156,6 +176,39 @@ function switchPsychic(playerList) {
 	return { player_list: player_list, psychic_id: psychic_id }
 }
 
+// Returns an array of all players who should receive points after a round
+function findPointReceivers(rollNum, playerGuesses, psychicId) {
+	let closestGuessers = []
+	let lowestDiff = 100
+
+	for (let i = 0; i < playerGuesses.length; i++) {
+		// Player guessed the number exactly
+		if (Math.abs(playerGuesses[i].guess - rollNum) === 0) {
+			closestGuessers = [playerGuesses[i].id, psychicId]
+			break
+		}
+
+		// Closer than current closest guess
+		else if (Math.abs(playerGuesses[i].guess - rollNum) < lowestDiff) {
+			lowestDiff = Math.abs(playerGuesses[i].guess - rollNum)
+			closestGuessers = [playerGuesses[i].id]
+		}
+
+		// Equal to current closest guess
+		else if (Math.abs(playerGuesses[i].guess - rollNum) === lowestDiff) {
+			closestGuessers.push(playerGuesses[i].id)
+		}
+	}
+
+	return closestGuessers
+}
+
+/* Returns the id of the current psychic */
+function getPsychicId(playerList) {
+	for (let i = 0; i < playerList.length; i++)
+		if (playerList[i].isPsychic)
+			return playerList[i].id
+}
 
 server.listen(PORT, () => {
     console.log(`Server running on port: ${PORT}`);

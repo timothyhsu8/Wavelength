@@ -1,6 +1,6 @@
 import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack } from '@chakra-ui/react';
 import { useLocation } from 'react-router-dom'
-import { BsDice6Fill } from 'react-icons/bs';
+import { BsDice6Fill, BsFillCaretRightFill } from 'react-icons/bs';
 import { useState, useEffect } from 'react';
 import io from 'socket.io-client';
 
@@ -19,7 +19,8 @@ export default function Game() {
     const [playerGuess, setPlayerGuess] = useState(-1)
     const [playerGuessed, setPlayerGuessed] = useState(false)
     const [playerGuesses, setPlayerGuesses] = useState([])
-   
+    const [allPlayersGuessed, setAllPlayersGuessed] = useState(false)
+
     const [isPsychic, setIsPsychic] = useState(false)
     
     const username = location.state.username
@@ -102,6 +103,12 @@ export default function Game() {
             setRollNum(gameInfo.roll_num)
             setPsychicRolled(true)
         })
+
+        // All players have guessed, display who received points
+        newSocket.on('all_players_guessed', (gameInfo) => {
+            setAllPlayersGuessed(true)
+            setPlayerList(gameInfo.updatedPlayerList)
+        })
     }, [])
 
     return (
@@ -129,9 +136,9 @@ export default function Game() {
                             })
                         }
                     </Stack>
-                    <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
+                    {/* <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
                         Next Turn
-                    </Button>
+                    </Button> */}
                     <Stack mt={8} spacing={1}>
                         <Text fontSize={20} fontWeight='bold'> Room Code </Text>
                         <Text fontSize={18} fontWeight='medium'> {roomCode} </Text>
@@ -204,11 +211,22 @@ export default function Game() {
     function renderControls() {
         // Render Roll Button (If Psychic)
         if (isPsychic) {
-            return (
+            let buttons = []
+            buttons.push(
                 <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}>
                     Roll
                 </Button>
             )
+
+            if (allPlayersGuessed) {
+                buttons.push(
+                    <Button w={250} h={75} fontSize={30} borderRadius={100} boxShadow='md' colorScheme='orange' leftIcon={<BsFillCaretRightFill />} onClick={nextTurn} _focus={{}}>
+                        Next Turn
+                    </Button>
+                )
+            }
+            
+            return buttons
         }
 
         // Render Guess Buttons (If Not Psychic)
@@ -229,7 +247,7 @@ export default function Game() {
         setPlayerGuesses(oldArray => [...oldArray, { username: guesser, guess: guessNum }])
         setDisabledGuesses(oldArray => [...oldArray, guessNum])
         
-        socket.emit('guess', { room_code: roomCode, username: username, guess: guessNum })
+        socket.emit('guess', { room_code: roomCode, username: username, id: socket.id, guess: guessNum })
         
     } 
 
@@ -246,6 +264,7 @@ export default function Game() {
         setPlayerGuesses([])
         setDisabledGuesses([])
         setPsychicRolled(false)
+        setAllPlayersGuessed(false)
 
         // If you are now the psychic
         if (psychicId === socketId) {
