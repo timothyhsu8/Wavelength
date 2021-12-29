@@ -28,10 +28,14 @@ io.on('connection', (socket) => {
 			room_password: room_info.room_password,
 			categories: room_info.categories,
 			psychicRolled: false,
+			playerGuesses: [],
+			disabledGuesses: [],
+			allPlayersGuessed: false,
 			player_list: [
 				{
 					id: socket.id,
 					username: room_info.creator,
+					score: 0,
 					isPsychic: true
 				}
 			]
@@ -51,6 +55,7 @@ io.on('connection', (socket) => {
 				{
 					id: socket.id,
 					username: username,
+					score: 0,
 					isPsychic: false
 				}
 			)
@@ -92,17 +97,30 @@ io.on('connection', (socket) => {
 	})
 
 	socket.on('guess', (guessInfo) => {
-		socket.broadcast.to(guessInfo.room_code).emit('guess', { username: guessInfo.username, guess: guessInfo.guess })
+		let room_info = room_data[guessInfo.room_code]
+		room_info.playerGuesses.push({ username: guessInfo.username, guess: guessInfo.guess })
+		room_info.disabledGuesses.push(guessInfo.guess)
+
+		socket.broadcast.to(guessInfo.room_code).emit('guess', { playerGuesses: room_info.playerGuesses, disabledGuesses: room_info.disabledGuesses })
+
+		// Checks if all players have now guessed
+		if (room_info.playerGuesses.length >= room_info.player_list.length - 1)
+			room_info.allPlayersGuessed = true
+
 	})
 
-	// New turn, reset guesses, move to next player, etc.
+	// New turn, reset guesses, transfer psychic to next player, etc.
 	socket.on('new_turn', (gameInfo) => {
 		let psychicInfo = switchPsychic(gameInfo.player_list)
 		room_data[gameInfo.room_code].player_list = psychicInfo.player_list
 		room_data[gameInfo.room_code].psychicRolled = false
+		room_data[gameInfo.room_code].playerGuesses = []
+		room_data[gameInfo.room_code].disabledGuesses = []
+
 		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
 	}) 
 
+	// Psychic rolled
 	socket.on('roll', (gameInfo) => {
 		room_data[gameInfo.room_code].psychicRolled = true
 		io.to(gameInfo.room_code).emit('roll', { roll_num: gameInfo.roll_num } )

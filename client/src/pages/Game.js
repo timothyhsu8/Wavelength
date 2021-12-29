@@ -14,7 +14,9 @@ export default function Game() {
    
     const [psychicRolled, setPsychicRolled] = useState(false)
     const [rollNum, setRollNum] = useState('--')
+
     const [disabledGuesses, setDisabledGuesses] = useState([])
+    const [playerGuess, setPlayerGuess] = useState(-1)
     const [playerGuessed, setPlayerGuessed] = useState(false)
     const [playerGuesses, setPlayerGuesses] = useState([])
    
@@ -42,7 +44,7 @@ export default function Game() {
                 room_code = generateRandomCode()
                 setRoomCode(room_code)
                 setRoomName(location.state.room_name)
-                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username, isPsychic: true }])
+                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username, score: 0, isPsychic: true }])
                 setIsPsychic(true)
 
                 let room_info = {
@@ -60,6 +62,8 @@ export default function Game() {
         newSocket.on('you_joined', (room_data) => {
             setRoomName(room_data.room_name)
             setPsychicRolled(room_data.psychicRolled)
+            setPlayerGuesses(room_data.playerGuesses)
+            setDisabledGuesses(room_data.disabledGuesses)
             // setPlayerList(room_data.player_list)
         })
 
@@ -80,7 +84,12 @@ export default function Game() {
 
         // A player guesses a number, grey it out and add it to the guesses list
         newSocket.on('guess', (guessInfo) => {
-            handleGuess(guessInfo.guess, guessInfo.username, false)
+            // console.log(guessInfo.allPlayersGuessed)
+            console.log(guessInfo.playerGuesses)
+
+            setPlayerGuesses(guessInfo.playerGuesses)
+            setDisabledGuesses(guessInfo.disabledGuesses)
+            // handleGuess(guessInfo.guess, guessInfo.username, false)
         })
 
          // Sets the game to the next turn, resetting guesses and moving to the next psychic
@@ -114,7 +123,7 @@ export default function Game() {
                             playerList.map((player_info, index) => {
                                 return (
                                     <HStack spacing={3} key={index}>
-                                        <Text fontSize={18} fontWeight='medium'> { player_info.username } </Text>
+                                        <Text fontSize={18} fontWeight='medium'> { player_info.username } - { player_info.score } </Text>
                                     </HStack>
                                 )
                             })
@@ -133,7 +142,7 @@ export default function Game() {
                 <VStack mt={4} spacing={170}>
                     <VStack spacing={30}>
                         <Heading size='lg'>
-                            Worst Movie - Best Movie
+                            Freeplay
                         </Heading>
                         { renderTurn() }
                     </VStack>
@@ -183,7 +192,7 @@ export default function Game() {
         let guessButtons = []
         for (let i = 1; i <= 20; i++)
             guessButtons.push(
-                <Button w={75} h={75} m={2.5} colorScheme={disabledGuesses.includes(i) ? 'green' : 'facebook'} fontSize={25} borderRadius={100} 
+                <Button w={75} h={75} m={2.5} colorScheme={getGuessButtonColor(i)} fontSize={25} borderRadius={100} 
                     onClick={() => handleGuess(i, username, true)} 
                     isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled} _focus={{}} key={i}>
                     {i}
@@ -215,14 +224,13 @@ export default function Game() {
 
     /* Handles when a player guesses a number from 1-20 */
     function handleGuess(guessNum, guesser, selfGuess) {
+        setPlayerGuessed(true)
+        setPlayerGuess(guessNum)
         setPlayerGuesses(oldArray => [...oldArray, { username: guesser, guess: guessNum }])
         setDisabledGuesses(oldArray => [...oldArray, guessNum])
         
-        // If this client's player is the one who guessed (as opposed to an incoming guess from a different player)
-        if (selfGuess) {
-            setPlayerGuessed(true)
-            socket.emit('guess', { room_code: roomCode, username: username, guess: guessNum })
-        }
+        socket.emit('guess', { room_code: roomCode, username: username, guess: guessNum })
+        
     } 
 
     /* Sends socket event to switch to the next turn */
@@ -233,6 +241,7 @@ export default function Game() {
     /* Resets guesses and moves to the next players turn */
     function setNextTurn(updated_player_list, socketId, psychicId) {
         setPlayerList(updated_player_list)
+        setPlayerGuess(-1)
         setPlayerGuessed(false)
         setPlayerGuesses([])
         setDisabledGuesses([])
@@ -273,6 +282,18 @@ export default function Game() {
         for (let i = 0; i < playerList.length; i++)
             if (playerList[i].isPsychic)
                 return playerList[i].username
+    }
+
+    /* Returns the correct color for each guess button */
+    function getGuessButtonColor(i) {
+        // If this button is this client's guess, color button green
+        if (playerGuess === i)
+            return 'green'
+        // If this button is a different client's guess, color button black
+        if (disabledGuesses.includes(i))
+            return 'blue'
+        // If this button is unclicked, color button blue
+        return 'facebook'
     }
 
     /* Gets a random integer between min and max */
