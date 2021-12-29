@@ -28,7 +28,7 @@ export default function Game() {
     // console.log(location.state.categories)
     
     useEffect(() => {
-        const newSocket = io.connect(`http://${window.location.hostname}:5000`)
+        const newSocket = io.connect(`http://${window.location.hostname}`)
         setSocket(newSocket)
         let room_code = 'NONE'
 
