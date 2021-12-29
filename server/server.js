@@ -13,12 +13,8 @@ app.get('*', (req, res) => {
 
 const server = http.createServer(app)
 
-const io = require("socket.io")(server, {
-	cors: {
-		origin: "https://localhost:3000",
-		methods: ["GET", "POST"]
-	}
-});
+console.log(window.location.hostname)
+const io = require("socket.io")(server);
 
 var room_data = {}
 
