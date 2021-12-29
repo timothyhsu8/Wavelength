@@ -2,9 +2,7 @@ const express = require('express')
 const cors = require('cors')
 const app = express()
 const http = require('http')
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-import path from 'path'
+const path = require('path')
 
 app.use(express.static(path.resolve(__dirname, "../client/build")));
 
