@@ -10,10 +10,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../client', 'build', 'index.html'));
 });
 
-
 const server = http.createServer(app)
-
-console.log(window.location.hostname)
 const io = require("socket.io")(server);
 
 var room_data = {}
