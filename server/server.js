@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
-const http = require('http')
+const https = require('https')
 const path = require('path')
 
 app.use(express.static(path.resolve(__dirname, "../client/build")));
@@ -10,7 +10,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.resolve(__dirname, '../client', 'build', 'index.html'));
 });
 
-const server = http.createServer(app)
+const server = https.createServer(app)
 const io = require("socket.io")(server);
 
 var room_data = {}
