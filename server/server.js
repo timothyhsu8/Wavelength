@@ -113,17 +113,18 @@ io.on('connection', (socket) => {
 
 			// Find closest guess to the actual roll
 			let pointReceivers = findPointReceivers(room_info.rollNum, room_info.playerGuesses, getPsychicId(room_info.player_list))
+			let pointReceiverNames = []
 
 			pointReceivers.forEach((pointReceiverId) => {
 				room_info.player_list.forEach((player) => {
 					if (player.id === pointReceiverId) {
-						console.log("Player scored points")
 						player.score += 1
+						pointReceiverNames.push(player.username)
 					}
 				})
 			})
 
-			io.to(guessInfo.room_code).emit('all_players_guessed', { pointReceivers: pointReceivers, updatedPlayerList: room_info.player_list })
+			io.to(guessInfo.room_code).emit('all_players_guessed', { pointReceiverNames: pointReceiverNames, updatedPlayerList: room_info.player_list })
 		}
 
 	})

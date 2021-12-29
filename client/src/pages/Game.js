@@ -20,6 +20,7 @@ export default function Game() {
     const [playerGuessed, setPlayerGuessed] = useState(false)
     const [playerGuesses, setPlayerGuesses] = useState([])
     const [allPlayersGuessed, setAllPlayersGuessed] = useState(false)
+    const [pointReceiverNames, setPointReceiverNames] = useState([])
 
     const [isPsychic, setIsPsychic] = useState(false)
     
@@ -85,12 +86,8 @@ export default function Game() {
 
         // A player guesses a number, grey it out and add it to the guesses list
         newSocket.on('guess', (guessInfo) => {
-            // console.log(guessInfo.allPlayersGuessed)
-            console.log(guessInfo.playerGuesses)
-
             setPlayerGuesses(guessInfo.playerGuesses)
             setDisabledGuesses(guessInfo.disabledGuesses)
-            // handleGuess(guessInfo.guess, guessInfo.username, false)
         })
 
          // Sets the game to the next turn, resetting guesses and moving to the next psychic
@@ -108,6 +105,7 @@ export default function Game() {
         newSocket.on('all_players_guessed', (gameInfo) => {
             setAllPlayersGuessed(true)
             setPlayerList(gameInfo.updatedPlayerList)
+            setPointReceiverNames(gameInfo.pointReceiverNames)
         })
     }, [])
 
@@ -146,19 +144,23 @@ export default function Game() {
                 </Box>
 
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
-                <VStack mt={4} spacing={170}>
+                <VStack mt={8} spacing={170}>
                     <VStack spacing={30}>
-                        <Heading size='lg'>
+                        {/* <Heading size='lg'>
                             Freeplay
-                        </Heading>
+                        </Heading> */}
                         { renderTurn() }
+                        { 
+                            allPlayersGuessed ? 
+                                <VStack>
+                                    <Heading size='xl' > Roll was: { rollNum } </Heading> 
+                                </VStack>
+                                : 
+                                '' 
+                        }
                     </VStack>
                     
-                    { isPsychic ? 
-                        <Heading size='2xl'> {rollNum} </Heading>
-                        :
-                        <Heading size='xl'> Waiting for { getPsychic() } to roll... </Heading>
-                    }
+                    { renderMiddleText() }
                     
                     <VStack spacing={12}>
                         { renderControls() }
@@ -294,6 +296,36 @@ export default function Game() {
                 <Heading size='lg' textColor="white" fontWeight='medium'> { getPsychic() }'s Turn </Heading>
             </Box>
         )
+    }
+
+    /* Renders the text in the middle of the game board (Roll number, Waiting for x, point receivers) */
+    function renderMiddleText() {
+        // If all players have guessed, display the players who received points
+        if (allPlayersGuessed) {
+            return (
+                <Box>
+                    <VStack spacing={5}> 
+                        <Heading size='xl' textColor='green.600' > Points Awarded To </Heading>
+                        {
+                            pointReceiverNames.map((name, index) => {
+                                return <Heading size='xl' key={index} > { name } </Heading>
+                            })
+                        }
+                    </VStack>
+                </Box>
+            )
+        }
+
+        // If psychic, display roll number
+        if (isPsychic)
+            return <Heading size='2xl'> {rollNum} </Heading>
+        
+        // If guesser and psychic has rolled, display roll text
+        if (psychicRolled)
+            return <Heading size='xl'> Take your guess! </Heading>
+
+        // If guesser and psychic hasn't rolled, display waiting text
+        return <Heading size='xl'> Waiting for { getPsychic() } to roll... </Heading>
     }
 
     /* Returns the name of the current psychic */
