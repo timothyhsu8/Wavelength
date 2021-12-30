@@ -1,11 +1,18 @@
-import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack } from '@chakra-ui/react';
-import { useLocation } from 'react-router-dom'
-import { BsDice6Fill, BsFillCaretRightFill } from 'react-icons/bs';
-import { useState, useEffect } from 'react';
+import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, 
+    AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay } from '@chakra-ui/react';
+import { SunIcon } from '@chakra-ui/icons'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { BsDice6Fill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
+import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
+import crownIcon from '../images/crown_icon.svg'
 
 export default function Game() {
+    let navigate = useNavigate()
     const location = useLocation()
+    const cancelRef = useRef()
+    const { toggleColorMode } = useColorMode()
+    const [showExitConfirmation, setShowExitConfirmation] = useState(false)
     const [socket, setSocket] = useState(null)
 
     const [roomName, setRoomName] = useState('')
@@ -26,10 +33,22 @@ export default function Game() {
     
     const username = location.state.username
     // console.log(location.state.categories)
-    
+
+    // Dark Mode Colors
+    const sidebarBgColor = useColorModeValue('gray.50', 'gray.700')
+    const borderColor = useColorModeValue('gray.200', 'gray.600')
+    const greenTextColor = useColorModeValue('green.600', 'green.300')
+    const greenBgColor = useColorModeValue('green.500', 'green.200')
+    const blueBgColor = useColorModeValue('blue.500', 'blue.200')
+    const buttonTextColor = useColorModeValue('white', 'gray.800')
+
+    const blueIconColor = useColorModeValue('blue.500', 'blue.300')
+    const yellowIconColor = useColorModeValue('yellow.500', 'yellow.300')
+    const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
+
     useEffect(() => {
-        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
-        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
+        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
+        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
         setSocket(newSocket)
         let room_code = 'NONE'
 
@@ -67,6 +86,9 @@ export default function Game() {
             setPsychicRolled(room_data.psychicRolled)
             setPlayerGuesses(room_data.playerGuesses)
             setDisabledGuesses(room_data.disabledGuesses)
+            setAllPlayersGuessed(room_data.allPlayersGuessed)
+            setPointReceiverNames(room_data.pointReceiverNames)
+            setRollNum(room_data.rollNum)
             // setPlayerList(room_data.player_list)
         })
 
@@ -114,65 +136,73 @@ export default function Game() {
         <Box>
             <Grid templateColumns='0.18fr 0.64fr 0.18fr'>
                 {/* Left Column (Player List) */}
-                <Box px={7} py={5} borderRight='1px' borderColor='gray.200'>
-                    <Center>
-                        <Heading size='lg'>
-                            {roomName}
-                        </Heading>
-                    </Center>
+                <Box minH='100vh' borderRight='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
+                    {/* Return Home Button */}
+                    <Button w='full' h={14} fontSize={20} borderBottom='1px' borderColor={borderColor} borderRadius={0} bgColor={sidebarBgColor} 
+                        leftIcon={<Icon as={BsFilter} color={blueIconColor} />} 
+                        onClick={() => setShowExitConfirmation(true)}
+                        _focus={{}}>
+                        Wavelength
+                    </Button>
+                    
+                    <Box px={7} py={5}>
+                        <Center>
+                            <Heading size='lg'>
+                                {roomName}
+                            </Heading>
+                        </Center>
 
-                    <Stack mt={4}>
-                        <Text fontSize={20} fontWeight='bold'>
-                            Players
-                        </Text>
-                        {
-                            playerList.map((player_info, index) => {
-                                return (
-                                    <HStack spacing={3} key={index}>
-                                        <Text fontSize={18} fontWeight='medium'> { player_info.username } - { player_info.score } </Text>
-                                    </HStack>
-                                )
-                            })
-                        }
-                    </Stack>
-                    {/* <Button size='lg' mt={50} borderRadius={100} colorScheme='orange' onClick={nextTurn} _focus={{}}>
-                        Next Turn
-                    </Button> */}
-                    <Stack mt={8} spacing={1}>
-                        <Text fontSize={20} fontWeight='bold'> Room Code </Text>
-                        <Text fontSize={18} fontWeight='medium'> {roomCode} </Text>
-                    </Stack>
+                        <Stack mt={6}>
+                            <Text fontSize={22} fontWeight='bold'>
+                                Players
+                                <Icon as={BsFillPersonFill} pos='relative' color={blueIconColor} top={1} right={-2} />
+                            </Text>
+                            { renderPlayerList() }
+                        </Stack>
+                        <Stack mt={8} spacing={1}>
+                            <Text fontSize={22} fontWeight='bold'> 
+                                Room Code 
+                                <Icon as={BsKeyFill} pos='relative' color={yellowIconColor} top={1} right={-2} />
+                            </Text>
+                            <Text fontSize={20} fontWeight='medium'> {roomCode} </Text>
+                        </Stack>
+                    </Box>
                 </Box>
 
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
-                <VStack mt={8} spacing={170}>
-                    <VStack spacing={30}>
-                        {/* <Heading size='lg'>
-                            Freeplay
-                        </Heading> */}
-                        { renderTurn() }
-                        { 
-                            allPlayersGuessed ? 
-                                <VStack>
-                                    <Heading size='xl' > Roll was: { rollNum } </Heading> 
-                                </VStack>
-                                : 
-                                '' 
-                        }
+                <Box>
+                    {/* Dark Mode Button */}
+                    <Button float="right" variant="ghost" onClick={toggleColorMode} _focus={{}}>
+                        <SunIcon />
+                    </Button>
+
+                    <VStack mt={8} spacing={170}>
+                        <VStack spacing={30}>
+                            {/* <Heading size='lg'>
+                                Freeplay
+                            </Heading> */}
+                            { renderTurn() }
+                            { 
+                                allPlayersGuessed ? 
+                                    <VStack>
+                                        <Heading size='xl' > Roll was: { rollNum } </Heading> 
+                                    </VStack> : '' 
+                            }
+                        </VStack>
+                        { renderMiddleText() }
+                        
+                        <VStack spacing={12}>
+                            { renderControls() }
+                        </VStack>
                     </VStack>
-                    
-                    { renderMiddleText() }
-                    
-                    <VStack spacing={12}>
-                        { renderControls() }
-                    </VStack>
-                </VStack>
+                </Box>
 
                 {/* Right Column (Guesses) */}
-                <Box p={5} borderLeft='1px' borderColor='gray.200'>
+                <Box p={5} borderLeft='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
                     <Stack>
-                        <Text fontSize={20} fontWeight='bold'>
+                        <Text mt={2} fontSize={22} fontWeight='bold'>
                             Guesses
+                            <Icon as={BsFillPatchQuestionFill} pos='relative' color={purpleIconColor} top={1} right={-2} />
                         </Text>
                         {
                             playerGuesses.map((guess, index) => {
@@ -187,6 +217,7 @@ export default function Game() {
                     </Stack>
                 </Box>
             </Grid>
+            { renderReturnHomeModal() }
         </Box>
     )
 
@@ -204,7 +235,7 @@ export default function Game() {
             guessButtons.push(
                 <Button w={75} h={75} m={2.5} colorScheme={getGuessButtonColor(i)} fontSize={25} borderRadius={100} 
                     onClick={() => handleGuess(i, username, true)} 
-                    isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled} _focus={{}} key={i}>
+                    isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled || allPlayersGuessed} _focus={{}} key={i}>
                     {i}
                 </Button>
             )
@@ -268,6 +299,7 @@ export default function Game() {
         setDisabledGuesses([])
         setPsychicRolled(false)
         setAllPlayersGuessed(false)
+        setPointReceiverNames([])
 
         // If you are now the psychic
         if (psychicId === socketId) {
@@ -281,20 +313,47 @@ export default function Game() {
         }
     }
 
+    /* Renders the player list */
+    function renderPlayerList() {
+        // Finds the highest score in the lobby
+        let highest_score = 0
+        playerList.forEach((player_info) => {
+            if (player_info.score > highest_score)
+                highest_score = player_info.score
+        })
+
+        // Renders player names and scores
+        return (
+            playerList.map((player_info, index) => {
+                return (
+                    <HStack spacing={3} key={index}>
+                        <Text fontSize={18} fontWeight='medium'> { player_info.username } - { player_info.score } </Text>
+                        
+                        {/* If player is psychic display an icon next to their name */}
+                        { player_info.isPsychic ? <Icon color={purpleIconColor} as={BsHurricane} /> : '' }
+
+                        {/* If player has highest score display an icon next to their name */}
+                        {/* { player_info.score === highest_score ? <Image src={crownIcon} boxSize={18} /> : '' } */}
+                    </HStack>
+                )
+            })
+        )
+    }
+
     /* Renders the current player's turn (X's Turn OR Your Turn) */
     function renderTurn() {
         // Your Turn
         if (isPsychic)
             return (
-                <Box px={6} py={2} borderRadius='40px' bgColor='green.500'>
-                    <Heading size='lg' textColor="white" fontWeight='medium'> Your Turn </Heading>
+                <Box px={6} py={2} borderRadius='40px' bgColor={greenBgColor}>
+                    <Heading size='lg' textColor={buttonTextColor} fontWeight='medium'> Your Turn </Heading>
                 </Box>
             )
         
         // Different player's turn
         return (
-            <Box px={6} py={2} borderRadius='40px' bgColor='blue.500'>
-                <Heading size='lg' textColor="white" fontWeight='medium'> { getPsychic() }'s Turn </Heading>
+            <Box px={6} py={2} borderRadius='40px' bgColor={blueBgColor}>
+                <Heading size='lg' textColor={buttonTextColor} fontWeight='medium'> { getPsychic() }'s Turn </Heading>
             </Box>
         )
     }
@@ -306,7 +365,7 @@ export default function Game() {
             return (
                 <Box>
                     <VStack spacing={5}> 
-                        <Heading size='xl' textColor='green.600' > Points Awarded To </Heading>
+                        <Heading size='xl' textColor={greenTextColor}> Points Awarded To </Heading>
                         {
                             pointReceiverNames.map((name, index) => {
                                 return <Heading size='xl' key={index} > { name } </Heading>
@@ -346,6 +405,38 @@ export default function Game() {
             return 'blue'
         // If this button is unclicked, color button blue
         return 'facebook'
+    }
+
+    /* Renders confirmation modal for returning to the homepage (Are you sure you want to exit this game?) */
+    function renderReturnHomeModal() {
+        return (
+            <AlertDialog
+                isOpen={showExitConfirmation}
+                leastDestructiveRef={cancelRef}
+                onClose={() => setShowExitConfirmation(false)}
+            >
+                <AlertDialogOverlay>
+                    <AlertDialogContent>
+                        <AlertDialogHeader fontSize='lg' fontWeight='bold'>
+                            Leave Game
+                        </AlertDialogHeader>
+
+                        <AlertDialogBody>
+                            Are you sure you want to leave this game?
+                        </AlertDialogBody>
+
+                        <AlertDialogFooter>
+                        <Button ref={cancelRef} onClick={() => setShowExitConfirmation(false)} _focus={{}} >
+                            Cancel
+                        </Button>
+                        <Button ml={3} colorScheme='red' onClick={() => navigate('/')} _focus={{}} >
+                            Leave
+                        </Button>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialogOverlay>
+            </AlertDialog>
+        )
     }
 
     /* Gets a random integer between min and max */

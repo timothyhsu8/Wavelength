@@ -1,7 +1,7 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
-const https = require('https')
+const http = require('http')
 const path = require('path')
 
 app.use(cors())
@@ -12,7 +12,7 @@ app.get('*', (req, res) => {
 });
 
 
-const server = https.createServer(app)
+const server = http.createServer(app)
 
 const io = require("socket.io")(server, {
 	cors: {
@@ -42,6 +42,8 @@ io.on('connection', (socket) => {
 			playerGuesses: [],
 			disabledGuesses: [],
 			allPlayersGuessed: false,
+			pointReceiverNames: [],
+
 			player_list: [
 				{
 					id: socket.id,
@@ -121,7 +123,7 @@ io.on('connection', (socket) => {
 
 			// Find closest guess to the actual roll
 			let pointReceivers = findPointReceivers(room_info.rollNum, room_info.playerGuesses, getPsychicId(room_info.player_list))
-			let pointReceiverNames = []
+			let pointReceiverNames = room_info.pointReceiverNames
 
 			pointReceivers.forEach((pointReceiverId) => {
 				room_info.player_list.forEach((player) => {
@@ -144,6 +146,8 @@ io.on('connection', (socket) => {
 		room_data[gameInfo.room_code].psychicRolled = false
 		room_data[gameInfo.room_code].playerGuesses = []
 		room_data[gameInfo.room_code].disabledGuesses = []
+		room_data[gameInfo.room_code].allPlayersGuessed = false
+		room_data[gameInfo.room_code].pointReceiverNames = []
 
 		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
 	}) 
