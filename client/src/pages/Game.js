@@ -28,7 +28,8 @@ export default function Game() {
     // console.log(location.state.categories)
     
     useEffect(() => {
-        const newSocket = io.connect(`ws://${window.location.hostname}`)
+        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
+        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
         setSocket(newSocket)
         let room_code = 'NONE'
 
