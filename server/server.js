@@ -4,6 +4,7 @@ const app = express()
 const http = require('http')
 const path = require('path')
 
+app.use(cors())
 app.use(express.static(path.resolve(__dirname, "../client/build")));
 
 app.get('*', (req, res) => {
@@ -15,14 +16,12 @@ const server = http.createServer(app)
 
 const io = require("socket.io")(server, {
 	cors: {
-		origin: "http://localhost:3000",
+		origin: "*",
 		methods: ["GET", "POST"]
 	}
 });
 
 var room_data = {}
-
-// app.use(cors())
 const PORT = process.env.PORT || 5000
 
 io.on('connection', (socket) => {
