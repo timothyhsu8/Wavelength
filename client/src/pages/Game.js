@@ -1,8 +1,8 @@
-import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, 
+import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, Flex,
     AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay } from '@chakra-ui/react';
 import { SunIcon } from '@chakra-ui/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BsDice6Fill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
+import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFillVinylFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import crownIcon from '../images/crown_icon.svg'
@@ -37,6 +37,7 @@ export default function Game() {
     // Dark Mode Colors
     const sidebarBgColor = useColorModeValue('gray.50', 'gray.700')
     const borderColor = useColorModeValue('gray.200', 'gray.600')
+    const blueTextColor = useColorModeValue('blue.500', 'blue.300')
     const greenTextColor = useColorModeValue('green.600', 'green.300')
     const greenBgColor = useColorModeValue('green.500', 'green.200')
     const blueBgColor = useColorModeValue('blue.500', 'blue.200')
@@ -159,7 +160,7 @@ export default function Game() {
                             </Text>
                             { renderPlayerList() }
                         </Stack>
-                        <Stack mt={8} spacing={1}>
+                        <Stack mt={40} spacing={1}>
                             <Text fontSize={22} fontWeight='bold'> 
                                 Room Code 
                                 <Icon as={BsKeyFill} pos='relative' color={yellowIconColor} top={1} right={-2} />
@@ -184,9 +185,11 @@ export default function Game() {
                             { renderTurn() }
                             { 
                                 allPlayersGuessed ? 
-                                    <VStack>
-                                        <Heading size='xl' > Roll was: { rollNum } </Heading> 
-                                    </VStack> : '' 
+                                        
+                                    <Center>
+                                        { renderGraph() }
+                                    </Center>
+                                    : '' 
                             }
                         </VStack>
                         { renderMiddleText() }
@@ -245,22 +248,21 @@ export default function Game() {
     function renderControls() {
         // Render Roll Button (If Psychic)
         if (isPsychic) {
-            let buttons = []
-            buttons.push(
-                <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}>
-                    Roll
-                </Button>
-            )
-
             if (allPlayersGuessed) {
-                buttons.push(
-                    <Button w={250} h={75} fontSize={30} borderRadius={100} boxShadow='md' colorScheme='orange' leftIcon={<BsFillCaretRightFill />} onClick={nextTurn} _focus={{}}>
+                return (
+                    <Button w={250} h={75} fontSize={30} borderRadius={100} boxShadow='md' colorScheme='pink' leftIcon={<BsFillCaretRightFill />} onClick={nextTurn} _focus={{}}>
                         Next Turn
                     </Button>
                 )
             }
-            
-            return buttons
+
+            else {
+                return (
+                    <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}>
+                        Roll
+                    </Button>
+                )
+            }
         }
 
         // Render Guess Buttons (If Not Psychic)
@@ -330,9 +332,10 @@ export default function Game() {
                         <Text fontSize={18} fontWeight='medium'> { player_info.username } - { player_info.score } </Text>
                         
                         {/* If player is psychic display an icon next to their name */}
-                        { player_info.isPsychic ? <Icon color={purpleIconColor} as={BsHurricane} /> : '' }
+                        { player_info.isPsychic ? <Icon color={purpleIconColor} as={BsFillVinylFill} /> : '' }
 
                         {/* If player has highest score display an icon next to their name */}
+                        { player_info.score === highest_score  ? <Icon color={yellowIconColor} as={BsFillBookmarkStarFill} /> : '' }
                         {/* { player_info.score === highest_score ? <Image src={crownIcon} boxSize={18} /> : '' } */}
                     </HStack>
                 )
@@ -365,10 +368,10 @@ export default function Game() {
             return (
                 <Box>
                     <VStack spacing={5}> 
-                        <Heading size='xl' textColor={greenTextColor}> Points Awarded To </Heading>
+                        <Heading size='lg' textColor={greenTextColor}> Points Awarded To </Heading>
                         {
                             pointReceiverNames.map((name, index) => {
-                                return <Heading size='xl' key={index} > { name } </Heading>
+                                return <Heading size='lg' key={index} > { name } </Heading>
                             })
                         }
                     </VStack>
@@ -378,7 +381,7 @@ export default function Game() {
 
         // If psychic, display roll number
         if (isPsychic)
-            return <Heading size='2xl'> {rollNum} </Heading>
+            return <Button w={120} h={120} fontSize={40} borderRadius={100} colorScheme='teal' _hover={{cursor:"auto"}} _active={{}} _focus={{}}> {rollNum} </Button>
         
         // If guesser and psychic has rolled, display roll text
         if (psychicRolled)
@@ -405,6 +408,21 @@ export default function Game() {
             return 'blue'
         // If this button is unclicked, color button blue
         return 'facebook'
+    }
+
+    /* Renders the graph that displays how close each player was to the actual roll */
+    function renderGraph() {
+        let graphNumbers = []
+        for (let i = 1; i <= 20; i++)
+            graphNumbers.push(
+                renderGraphNumbers(i)
+            )
+
+        return  (
+            <Flex>
+                { graphNumbers }
+            </Flex>
+        )
     }
 
     /* Renders confirmation modal for returning to the homepage (Are you sure you want to exit this game?) */
@@ -436,6 +454,38 @@ export default function Game() {
                     </AlertDialogContent>
                 </AlertDialogOverlay>
             </AlertDialog>
+        )
+    }
+
+    /* Renders a single number for the graph (including #, Actual, Guesser Names) */
+    function renderGraphNumbers(i) {
+        // Determines if a player has guessed this number, and stores their information if so
+        let guesserInfo = null
+        playerGuesses.forEach((guessInfo) => {
+            if (guessInfo.guess === i) 
+                guesserInfo = guessInfo
+        })
+
+        // Determines correct text color
+        let textColor = ''
+        if (rollNum === i)
+            textColor = greenTextColor
+        else if (guesserInfo !== null)
+            textColor = blueTextColor
+
+        return (
+            <VStack mx={4} spacing={2}>
+                <Text fontSize={22} key={i} fontWeight={ rollNum === i || guesserInfo !== null ? 'semibold' : 'normal' }  
+                    textColor={textColor} >
+                    {i}
+                </Text>
+                { rollNum === i ? 
+                    <Text textColor={greenTextColor}> Actual </Text> : ''
+                }
+                { guesserInfo !== null ? 
+                    <Text textColor={blueTextColor}> {guesserInfo.username} </Text> : ''
+                }
+            </VStack>
         )
     }
 
