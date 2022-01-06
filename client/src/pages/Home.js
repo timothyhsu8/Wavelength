@@ -52,10 +52,10 @@ export default function Home() {
                                             <FormLabel> Room Password </FormLabel>
                                             <Input name='room_password' bgColor={inputBgColor} />
                                         </GridItem>
-                                        <GridItem>
+                                        {/* <GridItem>
                                             <FormLabel> Categories </FormLabel>
                                             <Textarea name='categories' bgColor={inputBgColor} />
-                                        </GridItem>
+                                        </GridItem> */}
                                         <GridItem mt={4}>
                                             <Button w='full' type='submit' colorScheme='green'>
                                                 Create Game
@@ -85,10 +85,10 @@ export default function Home() {
                                             <FormLabel> Room Code </FormLabel>
                                             <Input name='room_code' bgColor={inputBgColor} />
                                         </GridItem>
-                                        <GridItem>
+                                        {/* <GridItem>
                                             <FormLabel> Room Password </FormLabel>
                                             <Input name='room_password' bgColor={inputBgColor} />
-                                        </GridItem>
+                                        </GridItem> */}
                                         <GridItem mt={4}>
                                             <Button w='full' type='submit' colorScheme='blue'>
                                                 Join Game
@@ -112,7 +112,7 @@ export default function Home() {
                 username: event.target.username.value,
                 room_name: event.target.room_name.value,
                 room_password: event.target.room_password.value,
-                categories: event.target.categories.value
+                // categories: event.target.categories.value
             }
         })
     }
@@ -124,7 +124,7 @@ export default function Home() {
             state: {
                 username: event.target.username.value,
                 room_code: event.target.room_code.value,
-                room_password: event.target.room_password.value
+                // room_password: event.target.room_password.value
             }
         })
     }

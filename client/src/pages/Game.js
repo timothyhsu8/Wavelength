@@ -1,5 +1,5 @@
-import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, Flex,
-    AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay } from '@chakra-ui/react';
+import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, Flex, Input,
+    AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Spacer } from '@chakra-ui/react';
 import { SunIcon } from '@chakra-ui/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFillVinylFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
@@ -12,11 +12,15 @@ export default function Game() {
     const location = useLocation()
     const cancelRef = useRef()
     const { toggleColorMode } = useColorMode()
+ 
+    const [showPasswordInput, setShowPasswordInput] = useState(false)
+    const [incorrectPassword, setIncorrectPassword] = useState(false)
     const [showExitConfirmation, setShowExitConfirmation] = useState(false)
     const [socket, setSocket] = useState(null)
 
     const [roomName, setRoomName] = useState('')
     const [roomCode, setRoomCode] = useState('NONE')
+    const [roomPassword, setRoomPassword] = useState('')
     const [playerList, setPlayerList] = useState([])
    
     const [psychicRolled, setPsychicRolled] = useState(false)
@@ -48,8 +52,8 @@ export default function Game() {
     const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
 
     useEffect(() => {
-        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
-        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
+        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
+        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
         setSocket(newSocket)
         let room_code = 'NONE'
 
@@ -67,6 +71,7 @@ export default function Game() {
                 room_code = generateRandomCode()
                 setRoomCode(room_code)
                 setRoomName(location.state.room_name)
+                setRoomPassword(location.state.room_password)
                 setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username, score: 0, isPsychic: true }])
                 setIsPsychic(true)
 
@@ -74,7 +79,7 @@ export default function Game() {
                     room_code: room_code,
                     room_name: location.state.room_name,
                     room_password: location.state.room_password,
-                    categories: location.state.categories,
+                    // categories: location.state.categories,
                     creator: username
                 }
                 newSocket.emit('create_room', room_info)
@@ -90,6 +95,11 @@ export default function Game() {
             setAllPlayersGuessed(room_data.allPlayersGuessed)
             setPointReceiverNames(room_data.pointReceiverNames)
             setRollNum(room_data.rollNum)
+            setRoomPassword(room_data.room_password)
+            
+            if (room_data.room_password !== '')
+                setShowPasswordInput(true)
+
             // setPlayerList(room_data.player_list)
         })
 
@@ -221,6 +231,7 @@ export default function Game() {
                 </Box>
             </Grid>
             { renderReturnHomeModal() }
+            { renderPasswordInputModal() }
         </Box>
     )
 
@@ -328,16 +339,16 @@ export default function Game() {
         return (
             playerList.map((player_info, index) => {
                 return (
-                    <HStack spacing={3} key={index}>
-                        <Text fontSize={18} fontWeight='medium'> { player_info.username } - { player_info.score } </Text>
-                        
-                        {/* If player is psychic display an icon next to their name */}
-                        { player_info.isPsychic ? <Icon color={purpleIconColor} as={BsFillVinylFill} /> : '' }
-
-                        {/* If player has highest score display an icon next to their name */}
-                        { player_info.score === highest_score  ? <Icon color={yellowIconColor} as={BsFillBookmarkStarFill} /> : '' }
-                        {/* { player_info.score === highest_score ? <Image src={crownIcon} boxSize={18} /> : '' } */}
-                    </HStack>
+                    <Flex>
+                        {/* <HStack> */}
+                            <Text fontWeight='medium'> { player_info.username } 
+                            { player_info.isPsychic ? <Icon pos='relative' ml='8px' top='2.5px' color={purpleIconColor} as={BsFillVinylFill} /> : '' }
+                            { player_info.score === highest_score  ? <Icon  pos='relative' ml='8px' top='2.5px' color={yellowIconColor} as={BsFillBookmarkStarFill} /> : '' }
+                            </Text>
+                        {/* </HStack> */}
+                        <Spacer />
+                        <Text fontWeight='medium'> { player_info.score } </Text>
+                    </Flex>
                 )
             })
         )
@@ -425,6 +436,51 @@ export default function Game() {
         )
     }
 
+    /* Renders a single number for the graph (including #, Actual, Guesser Names) */
+    function renderGraphNumbers(i) {
+        // Determines if a player has guessed this number, and stores their information if so
+        let guesserInfo = null
+        playerGuesses.forEach((guessInfo) => {
+            if (guessInfo.guess === i) 
+                guesserInfo = guessInfo
+        })
+
+        // Determines correct text color
+        let textColor = ''
+        if (rollNum === i)
+            textColor = greenTextColor
+        else if (guesserInfo !== null)
+            textColor = blueTextColor
+
+        return (
+            <VStack mx={4} spacing={2}>
+                {/* <Text> Closest </Text> */}
+                <Text fontSize={22} key={i} fontWeight={ rollNum === i || guesserInfo !== null ? 'semibold' : 'normal' }  
+                    textColor={textColor} >
+                    {i}
+                </Text>
+                { rollNum === i ? 
+                    <Text textColor={greenTextColor}> Actual </Text> : ''
+                }
+                { guesserInfo !== null ? 
+                    <Text textColor={blueTextColor}> {guesserInfo.username} </Text> : ''
+                }
+            </VStack>
+        )
+    }
+
+    /* Checks if the inputted password is correct or incorrect */
+    function submitPassword(event) {
+        event.preventDefault()
+        if (event.target.password_input.value === roomPassword)
+            setShowPasswordInput(false)
+        
+        // If password is incorrect, display an error message
+        else
+            setIncorrectPassword(true)
+
+    }
+
     /* Renders confirmation modal for returning to the homepage (Are you sure you want to exit this game?) */
     function renderReturnHomeModal() {
         return (
@@ -457,35 +513,38 @@ export default function Game() {
         )
     }
 
-    /* Renders a single number for the graph (including #, Actual, Guesser Names) */
-    function renderGraphNumbers(i) {
-        // Determines if a player has guessed this number, and stores their information if so
-        let guesserInfo = null
-        playerGuesses.forEach((guessInfo) => {
-            if (guessInfo.guess === i) 
-                guesserInfo = guessInfo
-        })
-
-        // Determines correct text color
-        let textColor = ''
-        if (rollNum === i)
-            textColor = greenTextColor
-        else if (guesserInfo !== null)
-            textColor = blueTextColor
-
+    /* Renders confirmation modal for returning to the homepage (Are you sure you want to exit this game?) */
+    function renderPasswordInputModal() {
         return (
-            <VStack mx={4} spacing={2}>
-                <Text fontSize={22} key={i} fontWeight={ rollNum === i || guesserInfo !== null ? 'semibold' : 'normal' }  
-                    textColor={textColor} >
-                    {i}
-                </Text>
-                { rollNum === i ? 
-                    <Text textColor={greenTextColor}> Actual </Text> : ''
-                }
-                { guesserInfo !== null ? 
-                    <Text textColor={blueTextColor}> {guesserInfo.username} </Text> : ''
-                }
-            </VStack>
+                <AlertDialog
+                    isOpen={showPasswordInput}
+                    leastDestructiveRef={cancelRef}
+                    onClose={() => setShowExitConfirmation(false)}
+                >
+                    <AlertDialogOverlay>
+                        <AlertDialogContent>
+                            <form onSubmit={submitPassword}>
+                                <AlertDialogHeader fontSize='lg' fontWeight='bold'>
+                                    Enter Room Password
+                                </AlertDialogHeader>
+
+                                <AlertDialogBody>
+                                    <Input name='password_input' />
+                                    { incorrectPassword ? <Text fontSize={14} textColor='red.500'> Incorrect Password </Text> : ''  } 
+                                </AlertDialogBody>
+
+                                <AlertDialogFooter>
+                                    <Button ref={cancelRef} onClick={() => navigate('/')} _focus={{}} >
+                                        Cancel
+                                    </Button>
+                                    <Button type='submit' ml={3} colorScheme='green' _focus={{}} >
+                                        Join
+                                    </Button>
+                                </AlertDialogFooter>
+                            </form>
+                        </AlertDialogContent>
+                    </AlertDialogOverlay>
+                </AlertDialog>
         )
     }
 
