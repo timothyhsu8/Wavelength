@@ -52,8 +52,8 @@ export default function Game() {
     const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
 
     useEffect(() => {
-        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
-        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
+        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing
+        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
         setSocket(newSocket)
         let room_code = 'NONE'
 
