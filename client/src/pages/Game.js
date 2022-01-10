@@ -13,6 +13,7 @@ export default function Game() {
     const cancelRef = useRef()
     const { toggleColorMode } = useColorMode()
  
+    const [showUsernameInput, setShowUsernameInput] = useState(false)
     const [showPasswordInput, setShowPasswordInput] = useState(false)
     const [incorrectPassword, setIncorrectPassword] = useState(false)
     const [showExitConfirmation, setShowExitConfirmation] = useState(false)
@@ -35,7 +36,7 @@ export default function Game() {
 
     const [isPsychic, setIsPsychic] = useState(false)
     
-    const username = location.state.username
+    const [username, setUsername] = useState('')
     // console.log(location.state.categories)
 
     // Dark Mode Colors
@@ -58,22 +59,29 @@ export default function Game() {
         setSocket(newSocket)
         let room_code = 'NONE'
 
+        // Joining a room through a link, prompt for a username
+        if (location.state === null) {
+            setShowUsernameInput(true)
+        }
+
         // Joining a room, use inputted room code
-        if (location.state.room_code !== undefined) {
+        else if (location.state.action === 'join') {
+            setUsername(location.state.username)
             setRoomCode(location.state.room_code)
             room_code = location.state.room_code
-            newSocket.emit('join', { room_code: room_code, username: username })
+            newSocket.emit('join', { room_code: room_code, username: location.state.username })
         }
 
         // Creating a room, generate a random room code
         else {
             // Waits for socket to connect (so it can set playerlist with the creators socket id)
             newSocket.on('connect', () => {
-                room_code = generateRandomCode()
+                room_code = location.state.room_code
+                setUsername(location.state.username)
                 setRoomCode(room_code)
                 setRoomName(location.state.room_name)
                 setRoomPassword(location.state.room_password)
-                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: username, score: 0, isPsychic: true }])
+                setPlayerList(oldArray => [...oldArray, { id: newSocket.id, username: location.state.username, score: 0, isPsychic: true }])
                 setIsPsychic(true)
 
                 let room_info = {
@@ -81,7 +89,7 @@ export default function Game() {
                     room_name: location.state.room_name,
                     room_password: location.state.room_password,
                     // categories: location.state.categories,
-                    creator: username
+                    creator: location.state.username
                 }
                 newSocket.emit('create_room', room_info)
             })
@@ -149,6 +157,14 @@ export default function Game() {
             setPointReceiverNames(gameInfo.pointReceiverNames)
         })
     }, [])
+
+
+    // If player joined through a direct link, only display username prompt
+    if (showUsernameInput) {
+        return (
+            renderUsernamePrompt()
+        )
+    }
 
     return (
         <Box>
@@ -254,7 +270,7 @@ export default function Game() {
         for (let i = 1; i <= 20; i++)
             guessButtons.push(
                 <Button w={75} h={75} m={2.5} colorScheme={getGuessButtonColor(i)} fontSize={25} borderRadius={100} 
-                    onClick={() => handleGuess(i, username, true)} 
+                    onClick={() => handleGuess(i)} 
                     isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled || allPlayersGuessed} _focus={{}} key={i}>
                     {i}
                 </Button>
@@ -294,7 +310,7 @@ export default function Game() {
     }
 
     /* Handles when a player guesses a number from 1-20 */
-    function handleGuess(guessNum, guesser) {    
+    function handleGuess(guessNum) {    
         socket.emit('guess', { room_code: roomCode, username: username, id: socket.id, guess: guessNum })
     } 
 
@@ -475,6 +491,16 @@ export default function Game() {
         navigate('/')
     }
 
+    /* Enters the game from a direct link (After a username is inputted) */
+    function enterGame(event) {
+        event.preventDefault()
+        let room_code = window.location.pathname.slice(-5)
+        setUsername(event.target.username_input.value)
+        setRoomCode(room_code)
+        socket.emit('join', { room_code: room_code, username: event.target.username_input.value })
+        setShowUsernameInput(false)
+    }
+
     /* Checks if the inputted password is correct or incorrect */
     function submitPassword(event) {
         event.preventDefault()
@@ -525,7 +551,6 @@ export default function Game() {
                 <AlertDialog
                     isOpen={showPasswordInput}
                     leastDestructiveRef={cancelRef}
-                    onClose={() => setShowExitConfirmation(false)}
                 >
                     <AlertDialogOverlay>
                         <AlertDialogContent>
@@ -554,7 +579,41 @@ export default function Game() {
         )
     }
 
-    /* Gets a random integer between min and max */
+    /* Renders modal for inputting a username (if the user joined through a direct link rather than through the homepage) */
+    function renderUsernamePrompt() {
+        return (
+            <AlertDialog
+                isOpen={showUsernameInput}
+                leastDestructiveRef={cancelRef}
+            >
+                <AlertDialogOverlay>
+                    <AlertDialogContent>
+                        <form onSubmit={enterGame}>
+                            <AlertDialogHeader fontSize='lg' fontWeight='bold'>
+                                Enter A Username
+                            </AlertDialogHeader>
+
+                            <AlertDialogBody>
+                                <Input name='username_input' />
+                                {/* { incorrectPassword ? <Text fontSize={14} textColor='red.500'> Incorrect Password </Text> : ''  }  */}
+                            </AlertDialogBody>
+
+                            <AlertDialogFooter>
+                                <Button ref={cancelRef} onClick={() => navigate('/')} _focus={{}} >
+                                    Cancel
+                                </Button>
+                                <Button type='submit' ml={3} colorScheme='green' _focus={{}} >
+                                    Join
+                                </Button>
+                            </AlertDialogFooter>
+                        </form>
+                    </AlertDialogContent>
+                </AlertDialogOverlay>
+            </AlertDialog>
+        )
+    }
+
+    /* Generates a random 5 letter room code */
     function generateRandomCode() {
         const randomChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
         let code = ''

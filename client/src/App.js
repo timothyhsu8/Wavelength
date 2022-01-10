@@ -9,7 +9,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path='/' element={<Home />}></Route>
-          <Route path='/game' element={<Game />}></Route>
+          <Route path='/game/:roomCode' element={<Game />}></Route>
         </Routes>
       </BrowserRouter>
     </ChakraProvider>
