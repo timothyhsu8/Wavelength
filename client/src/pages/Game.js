@@ -42,6 +42,7 @@ export default function Game() {
     const sidebarBgColor = useColorModeValue('gray.50', 'gray.700')
     const borderColor = useColorModeValue('gray.200', 'gray.600')
     const blueTextColor = useColorModeValue('blue.500', 'blue.300')
+    
     const greenTextColor = useColorModeValue('green.600', 'green.300')
     const greenBgColor = useColorModeValue('green.500', 'green.200')
     const blueBgColor = useColorModeValue('blue.500', 'blue.200')
@@ -52,8 +53,8 @@ export default function Game() {
     const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
 
     useEffect(() => {
-        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
-        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku
+        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
+        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
         setSocket(newSocket)
         let room_code = 'NONE'
 
@@ -145,9 +146,9 @@ export default function Game() {
 
     return (
         <Box>
-            <Grid templateColumns='0.18fr 0.64fr 0.18fr'>
+            <Grid templateColumns='1fr 3.3fr 1fr'>
                 {/* Left Column (Player List) */}
-                <Box minH='100vh' borderRight='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
+                <Box minW={200} minH='100vh' borderRight='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
                     {/* Return Home Button */}
                     <Button w='full' h={14} fontSize={20} borderBottom='1px' borderColor={borderColor} borderRadius={0} bgColor={sidebarBgColor} 
                         leftIcon={<Icon as={BsFilter} color={blueIconColor} />} 
@@ -195,8 +196,7 @@ export default function Game() {
                             { renderTurn() }
                             { 
                                 allPlayersGuessed ? 
-                                        
-                                    <Center>
+                                    <Center px={2} pos='relative' left={6}>
                                         { renderGraph() }
                                     </Center>
                                     : '' 
@@ -211,8 +211,8 @@ export default function Game() {
                 </Box>
 
                 {/* Right Column (Guesses) */}
-                <Box p={5} borderLeft='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
-                    <Stack>
+                <Box minW={200} p={5} borderLeft='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
+                    {/* <Stack>
                         <Text mt={2} fontSize={22} fontWeight='bold'>
                             Guesses
                             <Icon as={BsFillPatchQuestionFill} pos='relative' color={purpleIconColor} top={1} right={-2} />
@@ -227,7 +227,7 @@ export default function Game() {
                                 )
                             })
                         }
-                    </Stack>
+                    </Stack> */}
                 </Box>
             </Grid>
             { renderReturnHomeModal() }
@@ -453,7 +453,7 @@ export default function Game() {
             textColor = blueTextColor
 
         return (
-            <VStack mx={4} spacing={2}>
+            <VStack maxW={guesserInfo !== null ? '100' : ''} mx={4} spacing={2}>
                 {/* <Text> Closest </Text> */}
                 <Text fontSize={22} key={i} fontWeight={ rollNum === i || guesserInfo !== null ? 'semibold' : 'normal' }  
                     textColor={textColor} >
@@ -467,6 +467,12 @@ export default function Game() {
                 }
             </VStack>
         )
+    }
+
+    /* Returns player to the homepage and disconnects them from the lobby */
+    function leaveGame() {
+        socket.disconnect()
+        navigate('/')
     }
 
     /* Checks if the inputted password is correct or incorrect */
@@ -503,7 +509,7 @@ export default function Game() {
                         <Button ref={cancelRef} onClick={() => setShowExitConfirmation(false)} _focus={{}} >
                             Cancel
                         </Button>
-                        <Button ml={3} colorScheme='red' onClick={() => navigate('/')} _focus={{}} >
+                        <Button ml={3} colorScheme='red' onClick={leaveGame} _focus={{}} >
                             Leave
                         </Button>
                         </AlertDialogFooter>
