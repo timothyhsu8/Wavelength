@@ -28,140 +28,169 @@ io.on('connection', (socket) => {
 
 	// Create a new room
 	socket.on('create_room', (room_info) => {
-		let room_code = room_info.room_code
-		console.log(`Creating room ${room_code}`)
-		room_data[room_code] = {
-			room_code: room_code,
-			room_name: room_info.room_name,
-			room_password: room_info.room_password,
-			categories: room_info.categories,
-			
-			psychicRolled: false,
-			rollNum: '--',
+		try {
+			let room_code = room_info.room_code
+			console.log(`Creating room ${room_code}`)
+			room_data[room_code] = {
+				room_code: room_code,
+				room_name: room_info.room_name,
+				room_password: room_info.room_password,
+				categories: room_info.categories,
+				
+				psychicRolled: false,
+				rollNum: '--',
 
-			playerGuesses: [],
-			disabledGuesses: [],
-			allPlayersGuessed: false,
-			pointReceiverNames: [],
+				playerGuesses: [],
+				disabledGuesses: [],
+				allPlayersGuessed: false,
+				pointReceiverNames: [],
 
-			player_list: [
-				{
-					id: socket.id,
-					username: room_info.creator,
-					score: 0,
-					isPsychic: true
-				}
-			]
+				player_list: [
+					{
+						id: socket.id,
+						username: room_info.creator,
+						score: 0,
+						isPsychic: true
+					}
+				]
+			}
+			socket.join(room_code)
+		} 
+		catch(error) {
+			console.log(error)
 		}
-		socket.join(room_code)
 	})
 
 	// Player joins a room
 	socket.on('join', (join_data) => {
-		let room_code = join_data.room_code
-		let username = join_data.username
+		try {
+			let room_code = join_data.room_code
+			let username = join_data.username
 
-		// If the room exists, add new player to it
-		if (room_data[room_code] !== undefined) {
-			// Add new player to the player list
-			room_data[room_code].player_list.push(
-				{
-					id: socket.id,
-					username: username,
-					score: 0,
-					isPsychic: false
-				}
-			)
+			// If the room exists, add new player to it
+			if (room_data[room_code] !== undefined) {
+				// Add new player to the player list
+				room_data[room_code].player_list.push(
+					{
+						id: socket.id,
+						username: username,
+						score: 0,
+						isPsychic: false
+					}
+				)
 
-			socket.join(room_code)
-			io.to(socket.id).emit('you_joined', room_data[room_code])
-			io.to(room_code).emit('new_player_joined', room_data[room_code].player_list)
+				socket.join(room_code)
+				io.to(socket.id).emit('you_joined', room_data[room_code])
+				io.to(room_code).emit('new_player_joined', room_data[room_code].player_list)
+			}
+		}
+		catch(error) {
+			console.log(error)
 		}
 	})
 
 	// Player disconnects, remove them from the room
 	socket.on('disconnecting', () => {
-		socket.rooms.forEach((room_code) => {
-			if (room_data[room_code] !== undefined) {
-				let player_index = -1
-				let psychicInfo = null
+		try {
+			socket.rooms.forEach((room_code) => {
+				if (room_data[room_code] !== undefined) {
+					let player_index = -1
+					let psychicInfo = null
 
-				// Find index of the disconnecting player
-				let player_list = room_data[room_code].player_list
-				for (let i = 0; i <  player_list.length; i++)
-					if (player_list[i].id === socket.id) {
-						player_index = i
-						break
+					// Find index of the disconnecting player
+					let player_list = room_data[room_code].player_list
+					for (let i = 0; i <  player_list.length; i++)
+						if (player_list[i].id === socket.id) {
+							player_index = i
+							break
+						}
+					
+					// If disconnecting player was psychic, give psychic to the next player in line
+					if (player_list[player_index].isPsychic === true) {
+						psychicInfo = switchPsychic(player_list)
+						player_list = psychicInfo.player_list
+						room_data[room_code].psychicRolled = false
 					}
-				
-				// If disconnecting player was psychic, give psychic to the next player in line
-				if (player_list[player_index].isPsychic === true) {
-					psychicInfo = switchPsychic(player_list)
-					player_list = psychicInfo.player_list
-					room_data[room_code].psychicRolled = false
-				}
-				
-				// Remove player from the player list
-				player_list.splice(player_index, 1)
+					
+					// Remove player from the player list
+					player_list.splice(player_index, 1)
 
-				io.to(room_code).emit('player_disconnected', { updated_player_list: player_list, psychicInfo: psychicInfo })
-			}
-		})
+					io.to(room_code).emit('player_disconnected', { updated_player_list: player_list, psychicInfo: psychicInfo })
+				}
+			})
+		}
+		catch(error) {
+			console.log(error)
+		}
 	})
 
 	// Player guessed a number
 	socket.on('guess', (guessInfo) => {
-		let room_info = room_data[guessInfo.room_code]
+		try {
+			let room_info = room_data[guessInfo.room_code]
 
-		// If a player has already guessed this number, discard guess (Prevents race condition upon multiple players guessing a number at the same time)
-		if (checkIfGuessExists(room_info.playerGuesses, guessInfo.guess))
-			return
+			// If a player has already guessed this number, discard guess (Prevents race condition upon multiple players guessing a number at the same time)
+			if (checkIfGuessExists(room_info.playerGuesses, guessInfo.guess))
+				return
 
-		room_info.playerGuesses.push({ id: guessInfo.id, username: guessInfo.username, guess: guessInfo.guess })
-		room_info.disabledGuesses.push(guessInfo.guess)
+			room_info.playerGuesses.push({ id: guessInfo.id, username: guessInfo.username, guess: guessInfo.guess })
+			room_info.disabledGuesses.push(guessInfo.guess)
 
-		io.to(guessInfo.room_code).emit('guess', { info: guessInfo, playerGuesses: room_info.playerGuesses, disabledGuesses: room_info.disabledGuesses })
+			io.to(guessInfo.room_code).emit('guess', { info: guessInfo, playerGuesses: room_info.playerGuesses, disabledGuesses: room_info.disabledGuesses })
 
-		// Checks if all players have now guessed
-		if (room_info.playerGuesses.length >= room_info.player_list.length - 1) {
-			room_info.allPlayersGuessed = true
+			// Checks if all players have now guessed
+			if (room_info.playerGuesses.length >= room_info.player_list.length - 1) {
+				room_info.allPlayersGuessed = true
 
-			// Find closest guess to the actual roll
-			let pointReceivers = findPointReceivers(room_info.rollNum, room_info.playerGuesses, getPsychicId(room_info.player_list))
-			let pointReceiverNames = room_info.pointReceiverNames
+				// Find closest guess to the actual roll
+				let pointReceivers = findPointReceivers(room_info.rollNum, room_info.playerGuesses, getPsychicId(room_info.player_list))
+				let pointReceiverNames = room_info.pointReceiverNames
 
-			pointReceivers.forEach((pointReceiverId) => {
-				room_info.player_list.forEach((player) => {
-					if (player.id === pointReceiverId) {
-						player.score += 1
-						pointReceiverNames.push(player.username)
-					}
+				pointReceivers.forEach((pointReceiverId) => {
+					room_info.player_list.forEach((player) => {
+						if (player.id === pointReceiverId) {
+							player.score += 1
+							pointReceiverNames.push(player.username)
+						}
+					})
 				})
-			})
 
-			io.to(guessInfo.room_code).emit('all_players_guessed', { pointReceiverNames: pointReceiverNames, updatedPlayerList: room_info.player_list })
+				io.to(guessInfo.room_code).emit('all_players_guessed', { pointReceiverNames: pointReceiverNames, updatedPlayerList: room_info.player_list })
+			}
 		}
-
+		catch(error) {
+			console.log(error)
+		}
 	})
 
 	// New turn, reset guesses, transfer psychic to next player, etc.
 	socket.on('new_turn', (gameInfo) => {
-		let psychicInfo = switchPsychic(gameInfo.player_list)
-		room_data[gameInfo.room_code].player_list = psychicInfo.player_list
-		room_data[gameInfo.room_code].psychicRolled = false
-		room_data[gameInfo.room_code].playerGuesses = []
-		room_data[gameInfo.room_code].disabledGuesses = []
-		room_data[gameInfo.room_code].allPlayersGuessed = false
-		room_data[gameInfo.room_code].pointReceiverNames = []
+		try {
+			let psychicInfo = switchPsychic(gameInfo.player_list)
+			room_data[gameInfo.room_code].player_list = psychicInfo.player_list
+			room_data[gameInfo.room_code].psychicRolled = false
+			room_data[gameInfo.room_code].playerGuesses = []
+			room_data[gameInfo.room_code].disabledGuesses = []
+			room_data[gameInfo.room_code].allPlayersGuessed = false
+			room_data[gameInfo.room_code].pointReceiverNames = []
 
-		io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
+			io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
+		}
+		catch(error) {
+			console.log(error)
+		}
 	}) 
 
 	// Psychic rolled
 	socket.on('roll', (gameInfo) => {
-		room_data[gameInfo.room_code].psychicRolled = true
-		room_data[gameInfo.room_code].rollNum = gameInfo.roll_num
-		io.to(gameInfo.room_code).emit('roll', { roll_num: gameInfo.roll_num } )
+		try {
+			room_data[gameInfo.room_code].psychicRolled = true
+			room_data[gameInfo.room_code].rollNum = gameInfo.roll_num
+			io.to(gameInfo.room_code).emit('roll', { roll_num: gameInfo.roll_num } )
+		}
+		catch(error) {
+			console.log(error)
+		}
 	})
 })
 
