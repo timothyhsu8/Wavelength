@@ -112,10 +112,15 @@ io.on('connection', (socket) => {
 	// Player guessed a number
 	socket.on('guess', (guessInfo) => {
 		let room_info = room_data[guessInfo.room_code]
+
+		// If a player has already guessed this number, discard guess (Prevents race condition upon multiple players guessing a number at the same time)
+		if (checkIfGuessExists(room_info.playerGuesses, guessInfo.guess))
+			return
+
 		room_info.playerGuesses.push({ id: guessInfo.id, username: guessInfo.username, guess: guessInfo.guess })
 		room_info.disabledGuesses.push(guessInfo.guess)
 
-		socket.broadcast.to(guessInfo.room_code).emit('guess', { playerGuesses: room_info.playerGuesses, disabledGuesses: room_info.disabledGuesses })
+		io.to(guessInfo.room_code).emit('guess', { info: guessInfo, playerGuesses: room_info.playerGuesses, disabledGuesses: room_info.disabledGuesses })
 
 		// Checks if all players have now guessed
 		if (room_info.playerGuesses.length >= room_info.player_list.length - 1) {
@@ -214,6 +219,19 @@ function findPointReceivers(rollNum, playerGuesses, psychicId) {
 	}
 
 	return closestGuessers
+}
+
+// Checks if a player has already guessed a certain number
+function checkIfGuessExists(guesses, guessNum) {
+	let guessExists = false
+
+	guesses.forEach((guessInfo) => {
+		if (guessInfo.guess === guessNum) {
+			guessExists = true
+		}
+	})
+
+	return guessExists
 }
 
 /* Returns the id of the current psychic */

@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFillVinylFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
-import crownIcon from '../images/crown_icon.svg'
+// import crownIcon from '../images/crown_icon.svg'
 
 export default function Game() {
     let navigate = useNavigate()
@@ -53,8 +53,8 @@ export default function Game() {
     const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
 
     useEffect(() => {
-        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
-        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
+        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
+        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
         setSocket(newSocket)
         let room_code = 'NONE'
 
@@ -121,6 +121,12 @@ export default function Game() {
 
         // A player guesses a number, grey it out and add it to the guesses list
         newSocket.on('guess', (guessInfo) => {
+            // Incoming guess is this client's guess, make the proper UI adjustments
+            if (guessInfo.info.id === newSocket.id) {
+                setPlayerGuessed(true)
+                setPlayerGuess(guessInfo.info.guessNum)
+            }
+
             setPlayerGuesses(guessInfo.playerGuesses)
             setDisabledGuesses(guessInfo.disabledGuesses)
         })
@@ -212,7 +218,7 @@ export default function Game() {
 
                 {/* Right Column (Guesses) */}
                 <Box minW={200} p={5} borderLeft='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
-                    {/* <Stack>
+                    <Stack>
                         <Text mt={2} fontSize={22} fontWeight='bold'>
                             Guesses
                             <Icon as={BsFillPatchQuestionFill} pos='relative' color={purpleIconColor} top={1} right={-2} />
@@ -227,7 +233,7 @@ export default function Game() {
                                 )
                             })
                         }
-                    </Stack> */}
+                    </Stack>
                 </Box>
             </Grid>
             { renderReturnHomeModal() }
@@ -288,14 +294,8 @@ export default function Game() {
     }
 
     /* Handles when a player guesses a number from 1-20 */
-    function handleGuess(guessNum, guesser, selfGuess) {
-        setPlayerGuessed(true)
-        setPlayerGuess(guessNum)
-        setPlayerGuesses(oldArray => [...oldArray, { username: guesser, guess: guessNum }])
-        setDisabledGuesses(oldArray => [...oldArray, guessNum])
-        
+    function handleGuess(guessNum, guesser) {    
         socket.emit('guess', { room_code: roomCode, username: username, id: socket.id, guess: guessNum })
-        
     } 
 
     /* Sends socket event to switch to the next turn */
