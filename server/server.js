@@ -108,8 +108,9 @@ io.on('connection', (socket) => {
 					// If disconnecting player was psychic, give psychic to the next player in line
 					if (player_list[player_index].isPsychic === true) {
 						psychicInfo = switchPsychic(player_list)
+						resetTurn(room_data[room_code], psychicInfo)
+
 						player_list = psychicInfo.player_list
-						room_data[room_code].psychicRolled = false
 					}
 					
 					// Remove player from the player list
@@ -167,12 +168,7 @@ io.on('connection', (socket) => {
 	socket.on('new_turn', (gameInfo) => {
 		try {
 			let psychicInfo = switchPsychic(gameInfo.player_list)
-			room_data[gameInfo.room_code].player_list = psychicInfo.player_list
-			room_data[gameInfo.room_code].psychicRolled = false
-			room_data[gameInfo.room_code].playerGuesses = []
-			room_data[gameInfo.room_code].disabledGuesses = []
-			room_data[gameInfo.room_code].allPlayersGuessed = false
-			room_data[gameInfo.room_code].pointReceiverNames = []
+			resetTurn(room_data[gameInfo.room_code], psychicInfo)
 
 			io.to(gameInfo.room_code).emit('new_turn', { psychicId: psychicInfo.psychic_id, player_list: psychicInfo.player_list } )
 		}
@@ -221,6 +217,16 @@ function switchPsychic(playerList) {
 	}
 
 	return { player_list: player_list, psychic_id: psychic_id }
+}
+
+// Resets the correct room variables to prepare for the next turn (Resets point receivers, psychic, etc.)
+function resetTurn(room_data, psychicInfo) {
+	room_data.player_list = psychicInfo.player_list
+	room_data.psychicRolled = false
+	room_data.playerGuesses = []
+	room_data.disabledGuesses = []
+	room_data.allPlayersGuessed = false
+	room_data.pointReceiverNames = []
 }
 
 // Returns an array of all players who should receive points after a round
