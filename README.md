@@ -1,5 +1,6 @@
 # Wavelength
 Simplified version of the board game 'Wavelength' that you can play online with your friends over Discord. 
+### Play Now: http://izzylength.herokuapp.com/
 
 ## Creating a Game
 
