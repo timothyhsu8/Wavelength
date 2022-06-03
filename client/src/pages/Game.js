@@ -1,10 +1,11 @@
-import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, Flex, Input,
+import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useColorMode, useColorModeValue, Icon, Image, Flex, Input, Tag,
     AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Spacer } from '@chakra-ui/react';
 import { SunIcon } from '@chakra-ui/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFillVinylFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
+import { motion } from "framer-motion"
 // import crownIcon from '../images/crown_icon.svg'
 
 export default function Game() {
@@ -52,6 +53,9 @@ export default function Game() {
     const blueIconColor = useColorModeValue('blue.500', 'blue.300')
     const yellowIconColor = useColorModeValue('yellow.500', 'yellow.300')
     const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
+
+    // Motion Components
+    const MotionButton = motion(Button)
 
     useEffect(() => {
         const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
@@ -205,8 +209,11 @@ export default function Game() {
 
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
                 <Box>
+                    {/* Round # */}
+                    <Tag pos='absolute' m={4} float='left' variant='outline' size='lg'> Round #1 </Tag>
+
                     {/* Dark Mode Button */}
-                    <Button float="right" variant="ghost" onClick={toggleColorMode} _focus={{}}>
+                    <Button float='right' variant='ghost' onClick={toggleColorMode} _focus={{}}>
                         <SunIcon />
                     </Button>
 
@@ -218,8 +225,10 @@ export default function Game() {
                             { renderTurn() }
                             { 
                                 allPlayersGuessed ? 
-                                    <Center px={2} pos='relative' left={6}>
-                                        { renderGraph() }
+                                    <Center>
+                                        <Box pos='relative' mx={2} p={5} left={6} >
+                                            { renderGraph() }
+                                        </Box>
                                     </Center>
                                     : '' 
                             }
@@ -269,11 +278,13 @@ export default function Game() {
         let guessButtons = []
         for (let i = 1; i <= 20; i++)
             guessButtons.push(
-                <Button w={75} h={75} m={2.5} colorScheme={getGuessButtonColor(i)} fontSize={25} borderRadius={100} 
+                <MotionButton w={75} h={75} m={2.5} colorScheme={getGuessButtonColor(i)} fontSize={25} borderRadius={100} 
                     onClick={() => handleGuess(i)} 
-                    isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled || allPlayersGuessed} _focus={{}} key={i}>
+                    isDisabled={disabledGuesses.includes(i) || playerGuessed || !psychicRolled || allPlayersGuessed} _focus={{}} key={i}
+                    whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                    >
                     {i}
-                </Button>
+                </MotionButton>
             )
         return guessButtons
     }
@@ -291,9 +302,10 @@ export default function Game() {
 
             else {
                 return (
-                    <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}>
+                    <MotionButton w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}
+                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                         Roll
-                    </Button>
+                    </MotionButton>
                 )
             }
         }
@@ -394,11 +406,20 @@ export default function Game() {
         if (allPlayersGuessed) {
             return (
                 <Box>
-                    <VStack spacing={5}> 
+                    <Center>
                         <Heading size='lg' textColor={greenTextColor}> Points Awarded To </Heading>
+                    </Center>
+                
+
+                    <VStack spacing={5}> 
                         {
                             pointReceiverNames.map((name, index) => {
-                                return <Heading size='lg' key={index} > { name } </Heading>
+                                return (
+                                    // <Heading mt={5} size='lg' key={index} > { name } </Heading>
+                                <Button mt={5} px={20} py={6} fontSize={24}  colorScheme='blue' key={index}>
+                                    {name}
+                                </Button>
+                                )
                             })
                         }
                     </VStack>
@@ -470,7 +491,6 @@ export default function Game() {
 
         return (
             <VStack maxW={guesserInfo !== null ? '100' : ''} mx={4} spacing={2}>
-                {/* <Text> Closest </Text> */}
                 <Text fontSize={22} key={i} fontWeight={ rollNum === i || guesserInfo !== null ? 'semibold' : 'normal' }  
                     textColor={textColor} >
                     {i}
@@ -479,7 +499,7 @@ export default function Game() {
                     <Text textColor={greenTextColor}> Actual </Text> : ''
                 }
                 { guesserInfo !== null ? 
-                    <Text textColor={blueTextColor}> {guesserInfo.username} </Text> : ''
+                    <Text textColor={blueTextColor} textAlign='center'> {guesserInfo.username} </Text> : ''
                 }
             </VStack>
         )
