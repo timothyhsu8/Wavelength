@@ -6,6 +6,8 @@ import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQ
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { motion } from "framer-motion"
+import '../styles.css'
+
 // import crownIcon from '../images/crown_icon.svg'
 
 export default function Game() {
@@ -56,6 +58,15 @@ export default function Game() {
 
     // Motion Components
     const MotionButton = motion(Button)
+    const MotionHeading = motion(Heading);
+    const MotionText = motion(Text);
+
+    const bounceTransitition = {
+        y: {
+            duration: 1,
+            yoyo: Infinity
+        }
+    }
 
     useEffect(() => {
         const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
@@ -210,7 +221,9 @@ export default function Game() {
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
                 <Box>
                     {/* Round # */}
-                    <Tag pos='absolute' m={4} float='left' variant='outline' size='lg'> Round #1 </Tag>
+                    {
+                        playerList.length <= 1 ? '' : <Tag pos='absolute' m={4} float='left' variant='outline' size='lg'> Round #1 </Tag>
+                    }
 
                     {/* Dark Mode Button */}
                     <Button float='right' variant='ghost' onClick={toggleColorMode} _focus={{}}>
@@ -290,6 +303,10 @@ export default function Game() {
     }
 
     function renderControls() {
+        // If no players have joined the game yet, render nothing
+        if (playerList.length <= 1)
+            return
+
         // Render Roll Button (If Psychic)
         if (isPsychic) {
             if (allPlayersGuessed) {
@@ -302,7 +319,7 @@ export default function Game() {
 
             else {
                 return (
-                    <MotionButton w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={psychicRolled} _focus={{}}
+                    <MotionButton w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={playerList.length <= 1 || psychicRolled} _focus={{}}
                         whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
                         Roll
                     </MotionButton>
@@ -384,6 +401,10 @@ export default function Game() {
 
     /* Renders the current player's turn (X's Turn OR Your Turn) */
     function renderTurn() {
+        // If no players have joined the game yet, render nothing
+        if (playerList.length <= 1)
+            return
+
         // Your Turn
         if (isPsychic)
             return (
@@ -402,6 +423,19 @@ export default function Game() {
 
     /* Renders the text in the middle of the game board (Roll number, Waiting for x, point receivers) */
     function renderMiddleText() {
+        // If no players have joined the game yet, hover waiting text
+        if (playerList.length <= 1)
+            return (<VStack spacing={20}>
+                <MotionHeading fontFamily="cairo" tran size='lg' transition={bounceTransitition} animate = {{
+                    y: ["15%", "-15%"]
+                }}> Waiting for players to join... 
+                </MotionHeading>
+                <VStack> 
+                    <Text fontSize={20} fontWeight="medium"> Invite friends by link! </Text>
+                    <Text border='1px' borderRadius="5" borderColor="gray.300" bgColor="gray.100" padding="10px">http://izzylength.herokuapp/{roomCode}</Text> 
+                </VStack>
+            </VStack>)
+        
         // If all players have guessed, display the players who received points
         if (allPlayersGuessed) {
             return (
@@ -410,13 +444,12 @@ export default function Game() {
                         <Heading size='lg' textColor={greenTextColor}> Points Awarded To </Heading>
                     </Center>
                 
-
                     <VStack spacing={5}> 
                         {
                             pointReceiverNames.map((name, index) => {
                                 return (
                                     // <Heading mt={5} size='lg' key={index} > { name } </Heading>
-                                <Button mt={5} px={20} py={6} fontSize={24}  colorScheme='blue' key={index}>
+                                <Button mt={5} px={20} py={6} fontSize={24}  colorScheme='blue' key={index} _hover={{}}>
                                     {name}
                                 </Button>
                                 )
@@ -429,14 +462,16 @@ export default function Game() {
 
         // If psychic, display roll number
         if (isPsychic)
-            return <Button w={120} h={120} fontSize={40} borderRadius={100} colorScheme='teal' _hover={{cursor:"auto"}} _active={{}} _focus={{}}> {rollNum} </Button>
+            return <MotionButton w={120} h={120} fontSize={40} borderRadius={100} colorScheme='teal' _hover={{cursor:"auto"}} _active={{}} _focus={{}}
+                initial={{ scale:0 }} animate={{ scale: 1 }}
+                > {rollNum} </MotionButton>
         
         // If guesser and psychic has rolled, display roll text
         if (psychicRolled)
-            return <Heading size='xl'> Take your guess! </Heading>
+            return <Heading size='lg'> Take your guess! </Heading>
 
         // If guesser and psychic hasn't rolled, display waiting text
-        return <Heading size='xl'> Waiting for { getPsychic() } to roll... </Heading>
+        return <Heading fontFamily="cairo" size='lg'> Waiting for { getPsychic() } to roll... </Heading>
     }
 
     /* Returns the name of the current psychic */

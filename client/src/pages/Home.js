@@ -50,7 +50,7 @@ export default function Home() {
                                 <Stack w={500} p={10} spacing={4} border='1px' borderColor={borderColor} bgColor={bgColor}>
                                     {/* Wavelength Header */}
                                     <Center> 
-                                        <Heading> 
+                                        <Heading fontFamily="cairo"> 
                                             <Icon as={BsFilter} pos='relative' color='blue.500' top={1.5} right={2}/>
                                             Wavelength 
                                         </Heading> 
@@ -90,8 +90,8 @@ export default function Home() {
                                 <Stack w={500} p={10} spacing={4} border='1px' borderColor={borderColor} bgColor={bgColor}>
                                     {/* Wavelength Header */}
                                     <Center> 
-                                        <Heading> 
-                                        <Icon as={BsFilter} pos='relative' color='blue.500' top={1.5} right={2}/>
+                                        <Heading fontFamily="cairo"> 
+                                            <Icon as={BsFilter} pos='relative' color='blue.500' top={1.5} right={2}/>
                                             Wavelength 
                                         </Heading> 
                                     </Center>
