@@ -2,11 +2,13 @@ import { Box, Container, Stack, Center, Heading, Input, Text, FormControl, FormL
 import { SunIcon } from '@chakra-ui/icons'
 import { BsFilter } from "react-icons/bs";
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from "framer-motion"
+import { io } from 'socket.io-client';
 
 export default function Home() {
     let navigate = useNavigate();
+    const [socket, setSocket] = useState(null)
     const [formType, setFormType] = useState('create');
     const [animationPlayed, setAnimationPlayed] = useState(false);
     const [usernameError, setUsernameError] = useState(false);
@@ -14,6 +16,8 @@ export default function Home() {
     const [isMounted, setIsMounted] = useState(true);
     const { toggleColorMode } = useColorMode();
     
+    const [username, setUsername] = useState("");
+
     const inputBgColor = useColorModeValue("white", "gray.700");
     const bgColor = useColorModeValue("gray.100", "gray.700");
     const borderColor = useColorModeValue("gray.200", "gray.600");
@@ -22,15 +26,41 @@ export default function Home() {
     const MotionButton = motion(Button);
     const MotionText = motion(Text);
 
+    useEffect(() => {
+        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
+        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
+        setSocket(newSocket);
+        
+        newSocket.on('join', (joinData) => {
+            // Joined room successfully
+            if (joinData.success) {
+                navigate(`/game/${joinData.room_code}`, 
+                    { 
+                        state: {
+                            action: 'join',
+                            username: joinData.username,
+                            room_code: joinData.room_code,
+                            // room_password: event.target.room_password.value
+                        }
+                    })
+            }
+            
+            // Room doesn't exist
+            else {
+                setRoomcodeError(true);
+            }
+        })
+    }, []);
+
     return (
         <Box>
+
             <Button float="right" variant="ghost" onClick={toggleColorMode} _focus={{}}>
                 <SunIcon />
             </Button>
             <AnimatePresence>
             {
-
-                isMounted && <MotionBox  initial={ !animationPlayed ? { scale:0 } : '' } exit={{ scale:0 }} animate={{ scale: 1 }} onAnimationComplete={() => setAnimationPlayed(true)}
+                isMounted && <motion.div initial={ !animationPlayed ? { scale:0 } : '' } exit={{ scale:0 }} animate={{ scale: 1 }} onAnimationComplete={() => setAnimationPlayed(true)}
                 transition={{
                     type: "spring",
                     stiffness: 260,
@@ -63,21 +93,14 @@ export default function Home() {
                                                 <FormLabel> Username </FormLabel>
                                                 <Input name='username' placeholder="Username" bgColor={inputBgColor} />
                                                 {
-                                                    usernameError ? <MotionText pos='absolute' initial={{ opacity:0 }} animate={{ opacity: 1 }} fontSize='14' color='red.500' fontWeight='medium'> Please enter a username </MotionText> : ''
+                                                    usernameError ? <motion.div initial={{ opacity:0 }} animate={{ opacity: 1 }}><Text pos='absolute' fontSize='14' color='red.500' fontWeight='medium'> Please enter a username </Text> </motion.div> : ''
                                                 }
                                             </GridItem>
-                                            {/* <GridItem>
-                                                <FormLabel> Room Name </FormLabel>
-                                                <Input name='room_name' placeholder="Room Name" bgColor={inputBgColor} />
-                                            </GridItem> */}
+                                            
                                             <GridItem>
                                                 <FormLabel> Room Password </FormLabel>
                                                 <Input name='room_password' placeholder="Room Password" bgColor={inputBgColor} />
                                             </GridItem>
-                                            {/* <GridItem>
-                                                <FormLabel> Categories </FormLabel>
-                                                <Textarea name='categories' bgColor={inputBgColor} />
-                                            </GridItem> */}
                                             <GridItem mt={4}>
                                                 <MotionButton w='full' type='submit' colorScheme='green' whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                                     Create Game
@@ -101,14 +124,17 @@ export default function Home() {
                                         <SimpleGrid rowGap={6}>
                                             <GridItem>
                                                 <FormLabel> Username </FormLabel>
-                                                <Input name='username' placeholder="Username" bgColor={inputBgColor} />
+                                                <Input name='username' placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} bgColor={inputBgColor} />
                                                 {
-                                                    usernameError ? <MotionText pos='absolute' initial={{ opacity:0 }} animate={{ opacity: 1 }} fontSize='14' color='red.500' fontWeight='medium'> Please enter a username </MotionText> : ''
+                                                    usernameError ? <motion.div initial={{ opacity:0 }} animate={{ opacity: 1 }}><Text pos='absolute' fontSize='14' color='red.500' fontWeight='medium'> Please enter a username </Text> </motion.div> : ''
                                                 }
                                             </GridItem>
                                             <GridItem>
                                                 <FormLabel> Room Code </FormLabel>
                                                 <Input name='room_code' placeholder="Room Code" bgColor={inputBgColor} />
+                                                {
+                                                    roomcodeError? <motion.div initial={{ opacity:0 }} animate={{ opacity: 1 }}><Text pos='absolute' initial={{ opacity:0 }} animate={{ opacity: 1 }} fontSize='14' color='red.500' fontWeight='medium'> Room does not exist </Text> </motion.div> : ''
+                                                }
                                             </GridItem>
                                             {/* <GridItem>
                                                 <FormLabel> Room Password </FormLabel>
@@ -126,7 +152,7 @@ export default function Home() {
                         </Tabs>
                     </Center>
                 </Container>
-            </MotionBox>
+            </motion.div>
             }
             </AnimatePresence>
         </Box>
@@ -152,16 +178,15 @@ export default function Home() {
         }
 
         else {
-            setIsMounted(false);
             // Creating Game
             if (action === 'create') {
+                setIsMounted(false);
                 let room_code = generateRandomCode()
                 navigate(`/game/${room_code}`, 
                 { 
                     state: {
                         action: 'create',
                         username: username,
-                        // room_name: event.target.room_name.value,
                         room_password: event.target.room_password.value,
                         room_code: room_code
                         // categories: event.target.categories.value
@@ -172,66 +197,12 @@ export default function Home() {
             // Joining Game
             else {
                 const room_code = event.target.room_code.value;
-                
-                if (username.trim() === "") {
-                    setUsernameError(true);
-                }
-                
-                else {
-                    navigate(`/game/${event.target.room_code.value}`, 
-                    { 
-                        state: {
-                            action: 'join',
-                            username: username,
-                            room_code: room_code,
-                            // room_password: event.target.room_password.value
-                        }
-                    })
-                }
+                socket.emit('check_room', { room_code, username });
             }
+            setUsernameError(false);
+            setRoomcodeError(false);
         }
 
-    }
-
-    // Called 'Create Game' button is pressed     
-    function createGame(event) {
-        event.preventDefault()
-        let roomCode = generateRandomCode()
-        navigate(`/game/${roomCode}`, 
-        { 
-            state: {
-                action: 'create',
-                username: event.target.username.value,
-                room_name: event.target.room_name.value,
-                room_password: event.target.room_password.value,
-                room_code: roomCode
-                // categories: event.target.categories.value
-            }
-        })
-    }
-    
-    // Called 'Join Game' button is pressed
-    function joinGame(event) {
-        event.preventDefault();
-
-        const username = event.target.username.value;
-        const room_code = event.target.room_code.value;
-        
-        if (username.trim() === "") {
-            setUsernameError(true);
-        }
-        
-        else {
-            navigate(`/game/${event.target.room_code.value}`, 
-            { 
-                state: {
-                    action: 'join',
-                    username: username,
-                    room_code: room_code,
-                    // room_password: event.target.room_password.value
-                }
-            })
-        }
     }
 
     /* Generates a random 5 letter room code */

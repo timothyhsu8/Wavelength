@@ -56,6 +56,8 @@ export default function Game() {
     const yellowIconColor = useColorModeValue('yellow.500', 'yellow.300')
     const purpleIconColor = useColorModeValue('purple.500', 'purple.300')
 
+    const lightGray = useColorModeValue('gray.100', 'gray.600')   
+
     // Motion Components
     const MotionButton = motion(Button)
     const MotionHeading = motion(Heading);
@@ -107,6 +109,7 @@ export default function Game() {
                     creator: location.state.username
                 }
                 newSocket.emit('create_room', room_info)
+                console.log(newSocket);
             })
         }
 
@@ -319,10 +322,11 @@ export default function Game() {
 
             else {
                 return (
-                    <MotionButton w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={playerList.length <= 1 || psychicRolled} _focus={{}}
-                        whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
-                        Roll
-                    </MotionButton>
+                    <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+                        <Button w={200} h={90} fontSize={40} borderRadius={100} boxShadow='md' colorScheme='linkedin' leftIcon={<BsDice6Fill />} onClick={roll} isDisabled={playerList.length <= 1 || psychicRolled} _focus={{}}>
+                            Roll
+                        </Button>
+                    </motion.div>
                 )
             }
         }
@@ -409,14 +413,14 @@ export default function Game() {
         if (isPsychic)
             return (
                 <Box px={6} py={2} borderRadius='40px' bgColor={greenBgColor}>
-                    <Heading size='lg' textColor={buttonTextColor} fontWeight='medium'> Your Turn </Heading>
+                    <Heading size='lg' textColor={buttonTextColor} fontFamily="cairo"> Your Turn </Heading>
                 </Box>
             )
         
         // Different player's turn
         return (
             <Box px={6} py={2} borderRadius='40px' bgColor={blueBgColor}>
-                <Heading size='lg' textColor={buttonTextColor} fontWeight='medium'> { getPsychic() }'s Turn </Heading>
+                <Heading size='lg' textColor={buttonTextColor} fontFamily="cairo"> { getPsychic() }'s Turn </Heading>
             </Box>
         )
     }
@@ -432,7 +436,7 @@ export default function Game() {
                 </MotionHeading>
                 <VStack> 
                     <Text fontSize={20} fontWeight="medium"> Invite friends by link! </Text>
-                    <Text border='1px' borderRadius="5" borderColor="gray.300" bgColor="gray.100" padding="10px">http://izzylength.herokuapp/{roomCode}</Text> 
+                    <Text border='1px' borderRadius="5" borderColor={borderColor} bgColor={lightGray} padding="10px">http://izzylength.herokuapp/{roomCode}</Text> 
                 </VStack>
             </VStack>)
         
@@ -462,10 +466,12 @@ export default function Game() {
 
         // If psychic, display roll number
         if (isPsychic)
-            return <MotionButton w={120} h={120} fontSize={40} borderRadius={100} colorScheme='teal' _hover={{cursor:"auto"}} _active={{}} _focus={{}}
-                initial={{ scale:0 }} animate={{ scale: 1 }}
-                > {rollNum} </MotionButton>
-        
+            return (
+                <motion.div initial={{ scale:0 }} animate={{ scale: 1 }}>
+                    <Button w={120} h={120} fontSize={40} borderRadius={100} colorScheme='teal' _hover={{cursor:"auto"}} _active={{}} _focus={{}}> {rollNum} </Button>
+                </motion.div>
+            )
+
         // If guesser and psychic has rolled, display roll text
         if (psychicRolled)
             return <Heading size='lg'> Take your guess! </Heading>

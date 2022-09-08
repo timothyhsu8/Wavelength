@@ -26,6 +26,21 @@ const PORT = process.env.PORT || 5000
 
 io.on('connection', (socket) => {
 
+	// Checks if room exists or not
+	socket.on('check_room', (joinData) => {
+		console.log({joinData});
+		console.log(io.sockets.adapter.rooms.has(joinData.room_code));
+
+		// If room exists, set success to true. False otherwise.
+		if (io.sockets.adapter.rooms.has(joinData.room_code))
+			joinData.success = true;
+		else
+			joinData.success = false;
+
+		// Send response back to client
+		io.to(socket.id).emit('join', joinData);
+	})
+
 	// Create a new room
 	socket.on('create_room', (room_info) => {
 		try {
