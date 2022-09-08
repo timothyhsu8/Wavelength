@@ -2,7 +2,7 @@ import { Box, Heading, Center, VStack, Button, Stack, Grid, Text, HStack, useCol
     AlertDialog, AlertDialogBody, AlertDialogFooter, AlertDialogHeader, AlertDialogContent, AlertDialogOverlay, Spacer } from '@chakra-ui/react';
 import { SunIcon } from '@chakra-ui/icons'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFillVinylFill, BsFilter, BsHurricane, BsKeyFill } from 'react-icons/bs';
+import { BsDice6Fill, BsFillBookmarkStarFill, BsFillCaretRightFill, BsFillPatchQuestionFill, BsFillPersonFill, BsFillVinylFill, BsFilter, BsHurricane, BsKeyFill, BsQuestionCircle } from 'react-icons/bs';
 import { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import { motion } from "framer-motion"
@@ -188,7 +188,7 @@ export default function Game() {
         <Box>
             <Grid templateColumns='1fr 3.3fr 1fr'>
                 {/* Left Column (Player List) */}
-                <Box minW={200} minH='100vh' borderRight='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
+                <Box zIndex="1" minW={200} minH='100vh' borderRight='1px' bgColor={sidebarBgColor} borderColor={borderColor}>
                     {/* Return Home Button */}
                     <Button w='full' h={14} fontSize={20} borderBottom='1px' borderColor={borderColor} borderRadius={0} bgColor={sidebarBgColor} 
                         leftIcon={<Icon as={BsFilter} color={blueIconColor} />} 
@@ -222,10 +222,10 @@ export default function Game() {
                 </Box>
 
                 {/* Main Game (Players's Turn, Roll Number, Roll Button) */}
-                <Box>
+                <Box minW={500}>
                     {/* Round # */}
                     {
-                        playerList.length <= 1 ? '' : <Tag pos='absolute' m={4} float='left' variant='outline' size='lg'> Round #1 </Tag>
+                        playerList.length <= 1 ? '' : <Tag pos='absolute' m={4} float='left' variant='outline' size='lg' overflow="hidden"> Round #1 </Tag>
                     }
 
                     {/* Dark Mode Button */}
@@ -262,7 +262,7 @@ export default function Game() {
                     <Stack>
                         <Text mt={2} fontSize={22} fontWeight='bold'>
                             Guesses
-                            <Icon as={BsFillPatchQuestionFill} pos='relative' color={purpleIconColor} top={1} right={-2} />
+                        <Icon as={BsQuestionCircle} pos='relative' color={purpleIconColor} top={1} right={-2} />
                         </Text>
                         {
                             playerGuesses.map((guess, index) => {
@@ -388,13 +388,12 @@ export default function Game() {
         return (
             playerList.map((player_info, index) => {
                 return (
-                    <Flex>
-                        {/* <HStack> */}
-                            <Text fontWeight='medium'> { player_info.username } 
-                            { player_info.isPsychic ? <Icon pos='relative' ml='8px' top='2.5px' color={purpleIconColor} as={BsFillVinylFill} /> : '' }
+                    <Flex overflow="hidden">
+                        <HStack>
+                            <Text fontWeight='medium'> { player_info.username }  </Text>
+                            { player_info.isPsychic ? <Text color={purpleIconColor}> (Psychic) </Text>: '' }
                             { player_info.score === highest_score  ? <Icon  pos='relative' ml='8px' top='2.5px' color={yellowIconColor} as={BsFillBookmarkStarFill} /> : '' }
-                            </Text>
-                        {/* </HStack> */}
+                        </HStack>
                         <Spacer />
                         <Text fontWeight='medium'> { player_info.score } </Text>
                     </Flex>

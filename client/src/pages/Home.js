@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react';
 import { AnimatePresence, motion } from "framer-motion"
 import { io } from 'socket.io-client';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons'
 
 export default function Home() {
     let navigate = useNavigate();
@@ -54,7 +56,6 @@ export default function Home() {
 
     return (
         <Box>
-
             <Button float="right" variant="ghost" onClick={toggleColorMode} _focus={{}}>
                 <SunIcon />
             </Button>
