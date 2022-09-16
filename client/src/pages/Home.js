@@ -29,8 +29,8 @@ export default function Home() {
     const MotionText = motion(Text);
 
     useEffect(() => {
-        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
-        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
+        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
+        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
         setSocket(newSocket);
         
         newSocket.on('join', (joinData) => {

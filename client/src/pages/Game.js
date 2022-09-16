@@ -71,8 +71,8 @@ export default function Game() {
     }
 
     useEffect(() => {
-        const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
-        // const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
+        // const newSocket = io.connect(`http://${window.location.hostname}:5000`) // For local testing 
+        const newSocket = io.connect(`ws://${window.location.hostname}`) // For deploying to Heroku //
         setSocket(newSocket)
         let room_code = 'NONE'
 
@@ -124,8 +124,8 @@ export default function Game() {
             setRollNum(room_data.rollNum)
             setRoomPassword(room_data.room_password)
             
-            if (room_data.room_password !== '')
-                setShowPasswordInput(true)
+            // if (room_data.room_password !== '')
+            //     setShowPasswordInput(true)
 
             // setPlayerList(room_data.player_list)
         })
@@ -176,6 +176,11 @@ export default function Game() {
         })
     }, [])
 
+
+    // if (showPasswordInput) {
+    //     if (room_data.room_password !== '')
+    //         setShowPasswordInput(true)
+    // }
 
     // If player joined through a direct link, only display username prompt
     if (showUsernameInput) {
